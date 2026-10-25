@@ -8,10 +8,9 @@ export const config = {
   gemini: {
     apiKey: env("GEMINI_API_KEY"),
     project: env("GOOGLE_CLOUD_PROJECT"),
-    location: env("GOOGLE_CLOUD_LOCATION") || "us-central1",
-    // "-latest" aliases follow Google's current models, so a retirement doesn't break the app.
-    argonModel: env("ARGON_MODEL") || "gemini-pro-latest",
-    gemModel: env("GEM_MODEL") || "gemini-flash-latest",
+    location: env("GOOGLE_CLOUD_LOCATION") || "global",
+    argonModel: env("ARGON_MODEL") || "gemini-4-argon",
+    gemModel: env("GEM_MODEL") || "gemini-3.6-flash",
     imageModel: env("IMAGE_MODEL") || "gemini-3.1-flash-image-preview",
     embedModel: env("EMBED_MODEL") || "gemini-embedding-001",
   },
@@ -59,7 +58,7 @@ export const modelCheck: Record<string, { model: string; ok: boolean; error?: st
 export function integrationStatus() {
   const m = (k: string) => modelCheck[k];
   return [
-    { id: "gemini", name: "Gemini: Argon + Gems", live: live.gemini, env: ["GEMINI_API_KEY", "or GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS"], models: { argon: config.gemini.argonModel, gem: config.gemini.gemModel }, checks: [m("argon"), m("gem")].filter(Boolean), uses: "Splitting, routing, every Gem's two passes, Google Search grounding" },
+    { id: "gemini", name: config.gemini.apiKey ? "Gemini (AI Studio key): Argon + Gems" : "Gemini on Vertex AI: Argon + Gems", live: live.gemini, env: config.gemini.apiKey ? ["GEMINI_API_KEY (AI Studio)"] : ["GOOGLE_CLOUD_PROJECT", "GOOGLE_APPLICATION_CREDENTIALS", "Vertex AI User role"], models: { argon: config.gemini.argonModel, gem: config.gemini.gemModel }, checks: [m("argon"), m("gem")].filter(Boolean), uses: "Splitting, routing, every Gem's two passes, Google Search grounding" },
     { id: "image", name: "Gemini image model: posters", live: live.gemini, env: ["IMAGE_MODEL (optional)"], checks: [m("image")].filter(Boolean), uses: "Shareable warning and evacuation posters, made only after you approve", fallback: "A plain text poster" },
     { id: "embed", name: "Gemini Embeddings: knowledge + similar reports", live: live.gemini, env: ["EMBED_MODEL (optional)"], checks: [m("embed")].filter(Boolean), uses: "Searching the knowledge/ folder, spotting repeat reports of one incident", fallback: "Keyword search" },
     { id: "maps", name: "Maps Platform: Places, Routes, Geocoding, Weather + alerts, Air Quality", live: live.maps, env: ["GOOGLE_MAPS_API_KEY"], uses: "Locations, nearest help, drive times, rain, official weather alerts" },

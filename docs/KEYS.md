@@ -6,10 +6,9 @@ What each key switches on:
 
 | Key | Turns on |
 |---|---|
-| `GEMINI_API_KEY` | Argon, every Gem, Google Search grounding, posters, embeddings (knowledge search, similar reports) |
+| Service account + project (Vertex AI) | **Gemini 4 Argon** and every Gem, Google Search grounding, posters, embeddings, plus DLP, Healthcare NL, Model Armor, Firestore. Billed to the project's trial credit |
 | `GOOGLE_MAPS_API_KEY` | Geocoding, Places, Routes, Weather + official alerts, Air Quality |
 | `GOOGLE_CLOUD_API_KEY` | Cloud Vision reverse image search, Translation, Text-to-Speech, Safe Browsing |
-| Service account JSON | Cloud DLP masking, Healthcare Natural Language, Model Armor shield, Firestore |
 
 ---
 
@@ -31,10 +30,14 @@ If one name fails, remove it and run again, then enable that one by hand under *
 
 Also set a **budget alert** now: **Billing → Budgets & alerts → Create budget → $50**.
 
-## 2. Gemini key
+## 2. Gemini: use Vertex AI (not an AI Studio key)
 
-1. Go to **aistudio.google.com** → **Get API key** → **Create API key** → pick the **prompt wars** project.
-2. Copy it into `.env` as `GEMINI_API_KEY=`.
+Gemini 4 Argon is served through **Vertex AI** on your Cloud project, which bills the trial credit. Nothing to copy here: Paalam signs in with the `paalam` service account from step 5.
+
+- Leave `GEMINI_API_KEY=` **blank** in `.env`. If it's filled, Paalam uses AI Studio instead of Vertex.
+- Keep `GOOGLE_CLOUD_LOCATION=global` (the newest models are served from the global endpoint).
+- `ARGON_MODEL=gemini-4-argon` and `GEM_MODEL=gemini-3.6-flash` are already set. If the Keys screen shows a ✕ next to either, open **Vertex AI → Model Garden**, find the model, and copy its exact ID into `.env`.
+- Some newer models need you to click **Enable** on their Model Garden page once.
 
 ## 3. Maps key
 
@@ -59,7 +62,7 @@ Some APIs (DLP, Healthcare, Model Armor, Firestore) don't accept API keys; they 
    - **Healthcare Natural Language Service Viewer**
    - **Model Armor User**
    - **Cloud Datastore User** (for Firestore)
-   - **Vertex AI User** (only if you'll use Vertex instead of the AI Studio key)
+   - **Vertex AI User** (required: this is how Argon and the Gems run)
 3. Open the `paalam` account → **Keys → Add key → Create new key → JSON**. A file downloads.
 4. Move it **outside** the Paalam folder, for example `~/keys/paalam-sa.json`.
 5. In `.env`:
@@ -72,7 +75,7 @@ Some APIs (DLP, Healthcare, Model Armor, Firestore) don't accept API keys; they 
 Same roles from Cloud Shell, if you prefer (replace `PROJECT_ID`):
 
 ```bash
-for role in dlp.user healthcare.nlpServiceViewer modelarmor.user datastore.user; do
+for role in aiplatform.user dlp.user healthcare.nlpServiceViewer modelarmor.user datastore.user; do
   gcloud projects add-iam-policy-binding PROJECT_ID \
     --member="serviceAccount:paalam@PROJECT_ID.iam.gserviceaccount.com" --role="roles/$role"
 done
@@ -113,14 +116,13 @@ Then send a real message to Argon. The demo label disappears once Gemini is live
 Keys go in **Secret Manager**, never in the image:
 
 ```bash
-printf '%s' 'YOUR_GEMINI_KEY' | gcloud secrets create gemini-key --data-file=-
 printf '%s' 'YOUR_MAPS_KEY'   | gcloud secrets create maps-key --data-file=-
 printf '%s' 'YOUR_CLOUD_KEY'  | gcloud secrets create cloud-key --data-file=-
 
 gcloud run deploy paalam --source . --region asia-south1 --allow-unauthenticated \
   --service-account paalam@PROJECT_ID.iam.gserviceaccount.com \
   --set-env-vars GOOGLE_CLOUD_PROJECT=PROJECT_ID,PERSIST=firestore,MODEL_ARMOR_TEMPLATE=paalam-shield \
-  --set-secrets GEMINI_API_KEY=gemini-key:latest,GOOGLE_MAPS_API_KEY=maps-key:latest,GOOGLE_CLOUD_API_KEY=cloud-key:latest
+  --set-secrets GOOGLE_MAPS_API_KEY=maps-key:latest,GOOGLE_CLOUD_API_KEY=cloud-key:latest
 ```
 
 On Cloud Run the service account is attached directly, so you don't upload the JSON file there. Give it **Secret Manager Secret Accessor** too.
