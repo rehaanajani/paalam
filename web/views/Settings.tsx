@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Cable, Gem as GemIcon, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, X } from "lucide-react";
+import { Cable, Gauge, Gem as GemIcon, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, X } from "lucide-react";
+import { api } from "../api";
 import { Plugins } from "./Plugins";
 import { GemStudio } from "./GemStudio";
 import { Harness } from "./Harness";
@@ -20,6 +21,13 @@ const tabs: { id: SettingsTab; label: string; icon: typeof Cable }[] = [
 /** Socius's floating Settings dialog: sections on the left, the pane on the right. */
 export function SettingsDialog({ tab: initial, gems, tools, status, theme, onTheme, onGemsChanged, onClose }: { tab: SettingsTab; gems: GemDef[]; tools: ToolInfo[]; status: Status | null; theme: Theme; onTheme: (t: Theme) => void; onGemsChanged: () => void; onClose: () => void }) {
   const [tab, setTab] = useState<SettingsTab>(initial);
+  const [prefs, setPrefs] = useState<{ router: "gem" | "argon"; models: { gem: string; argon: string } } | null>(null);
+  useEffect(() => void api("settings").then(setPrefs).catch(() => {}), []);
+  const setRouter = async (router: "gem" | "argon") => {
+    if (!prefs) return;
+    setPrefs({ ...prefs, router });
+    await api("settings", { method: "PUT", json: { router } }).catch(() => {});
+  };
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", esc);
@@ -84,6 +92,25 @@ export function SettingsDialog({ tab: initial, gems, tools, status, theme, onThe
                   ))}
                 </div>
               </section>
+              {prefs && (
+                <section className="settings-card">
+                  <div className="settings-heading">
+                    <Gauge size={18} />
+                    <div>
+                      <strong>Who reads each message first</strong>
+                      <p>Every message is split into problems before the Gems start. The fast model does this in about 5 seconds; Argon is the bigger model and can take 10–25 seconds. The Gems always use the fast model.</p>
+                    </div>
+                  </div>
+                  <div className="segmented" role="radiogroup" aria-label="Routing model">
+                    <button role="radio" aria-checked={prefs.router === "gem"} className={prefs.router === "gem" ? "selected" : ""} onClick={() => setRouter("gem")}>
+                      Fast · {prefs.models.gem}
+                    </button>
+                    <button role="radio" aria-checked={prefs.router === "argon"} className={prefs.router === "argon" ? "selected" : ""} onClick={() => setRouter("argon")}>
+                      Argon · {prefs.models.argon}
+                    </button>
+                  </div>
+                </section>
+              )}
               {status && (
                 <section className="settings-card">
                   <div className="settings-heading">

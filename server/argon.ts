@@ -8,6 +8,7 @@ import { enforceTrust } from "./trust.js";
 import { addNote, argonSystem, budget, gemSystem, newUsage, overBudget } from "./harness/index.js";
 import { scenario } from "./demo/scenario.js";
 import { screen } from "./screen.js";
+import { settings } from "./settings.js";
 import type { ActionCard, Fact, Fragment, GemDef, GemResult, MapPin, ModelTier, Run, RunEvent, ToolCall } from "./types.js";
 
 type Emit = (e: RunEvent) => void;
@@ -78,8 +79,10 @@ export async function runBridge(run: Run, emit: Emit) {
 
     // 1. Split and route. Short text-only input doesn't need the big model.
     stage("split");
+    // The fast model routes by default (Settings → General can switch to Argon); short
+    // text-only input can be downshifted to the fast model even when Argon is chosen.
     const hasMedia = run.input.evidence.some((e) => e.data);
-    const routerTier: ModelTier = !hasMedia && run.input.text.length < budget.downshiftChars ? "gem" : "argon";
+    const routerTier: ModelTier = settings.get().router === "gem" || (!hasMedia && run.input.text.length < budget.downshiftChars) ? "gem" : "argon";
     const direct = run.target ? gems.get(run.target) : undefined;
     const split: SplitOut = direct
       ? run.demo
@@ -109,7 +112,7 @@ export async function runBridge(run: Run, emit: Emit) {
       if (!split.fragments.length) throw new Error(`Demo mode only has scripted answers for Flood Rescue, Health Guard and Scam Shield. Add GEMINI_API_KEY to talk to ${direct.name}.`);
       if (direct && run.demo) split.headline = `${direct.name}: ${split.fragments[0]!.title}`;
       audit("argon", `You messaged ${direct.name} directly, so I skipped the split`);
-    } else if (routerTier === "gem" && !run.demo) audit("harness", "Short text-only input, so it was routed by the fast model to save tokens");
+    } else if (!run.demo) audit("harness", `Routed by ${routerTier === "gem" ? `the fast model (${config.gemini.gemModel})` : `Argon (${config.gemini.argonModel})`}`);
     run.headline = split.headline;
     run.language = split.language;
     const argonNote = addNote("argon", split.harnessNote, run.id);

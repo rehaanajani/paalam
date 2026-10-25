@@ -19,6 +19,7 @@ import { allowPractice } from "./browser/net.js";
 import { store } from "./store.js";
 import { allIncidents, recordRun, setIncidents } from "./incidents.js";
 import { checkModels, keepWarm } from "./gemini.js";
+import { settings } from "./settings.js";
 import { ensureVectors, loadKnowledge } from "./knowledge.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
@@ -76,6 +77,15 @@ app.get("/api/status", (_req, res) => {
 });
 
 app.get("/api/tools", (_req, res) => res.json(publicTools()));
+
+app.get("/api/settings", (_req, res) => res.json({ ...settings.get(), models: { gem: config.gemini.gemModel, argon: config.gemini.argonModel } }));
+app.put("/api/settings", (req, res) => {
+  try {
+    res.json(settings.update(req.body ?? {}));
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
 
 app.get("/api/gems", (_req, res) => res.json(gems.all()));
 app.post("/api/gems/draft", async (req, res) => {

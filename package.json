@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "desktop": "vite build && electron .",
     "package": "vite build && electron-builder --mac --dir",
-    "install:mac": "npm run package && rm -rf /Applications/Paalam.app && cp -R dist-desktop/mac-arm64/Paalam.app /Applications/ && open /Applications/Paalam.app",
+    "install:mac": "npm run package && open -R dist-desktop/mac-arm64/Paalam.app",
     "setup": "npm install && npm run build"
   },
   "dependencies": {
