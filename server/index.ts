@@ -18,7 +18,7 @@ import { getShot, browserAvailable } from "./browser/index.js";
 import { allowPractice } from "./browser/net.js";
 import { store } from "./store.js";
 import { allIncidents, recordRun, setIncidents } from "./incidents.js";
-import { checkModels } from "./gemini.js";
+import { checkModels, keepWarm } from "./gemini.js";
 import { ensureVectors, loadKnowledge } from "./knowledge.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
@@ -251,6 +251,7 @@ for (const r of await store.loadRuns()) {
 }
 setIncidents(await store.loadIncidents());
 void checkModels();
+keepWarm();
 app.listen(config.port, () => {
   const on = integrationStatus().filter((i) => i.live).map((i) => i.id);
   console.log(`Paalam on http://localhost:${config.port}  ·  ${live.gemini ? "live" : "DEMO mode"}  ·  live: ${on.join(", ") || "none"}  ·  ${runs.size} saved run(s) (${store.engine()})`);

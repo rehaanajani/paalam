@@ -74,7 +74,7 @@ A Gem is four things: **instructions · a model · allowed tools · knowledge**.
 |---|---|---|
 | 🔵 Flood Rescue | flooding, people stranded, evacuation | geocode, weather, search_web, places_nearby, route, check_freshness, redact, translate, speak |
 | 🟢 Health Guard | prescriptions, medicines, symptoms | drug_label, places_nearby, route, redact, translate, speak, search_web |
-| 🟡 Scam Shield | forwards, fake relief, Aadhaar/OTP grabs | check_link, search_web, redact, translate, speak |
+| 🟡 Scam Shield | forwards, fake relief, OTP and bank-detail grabs | check_link, search_web, redact, translate, speak |
 | 🔴 Road Responder | accidents, collapse, fire | geocode, places_nearby, route, weather, translate, speak |
 | *any new Gem* | built in **Gem Studio** ("describe it → Argon designs it") or automatically by Argon mid-run | any subset |
 

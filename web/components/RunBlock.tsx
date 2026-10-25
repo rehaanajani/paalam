@@ -162,6 +162,8 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
         <div className="bubble argon-bubble">
           {s.stage === "error" ? (
             <span className="err-text">{s.error}</span>
+          ) : s.run?.reply ? (
+            <div className="plain">{s.run.reply}</div>
           ) : s.run?.headline && at >= 2 ? (
             <>
               <p className="headline">{s.run.headline}</p>
@@ -190,7 +192,7 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
               Shield ({s.run.shield.engine}): this input contains text aimed at an AI ({s.run.shield.reasons.join(", ")}). I read it as data, never as instructions.
             </p>
           )}
-          <ol className="steps">
+          {!s.run?.reply && <ol className="steps">
             {STEPS.map((st) => {
               const i = order.indexOf(st.id);
               const state = s.stage === "error" && i >= at ? "err" : i < at || s.stage === "done" ? "done" : i === at ? "now" : "todo";
@@ -201,7 +203,7 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
                 </li>
               );
             })}
-          </ol>
+          </ol>}
         </div>
       </article>
 

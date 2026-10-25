@@ -1,5 +1,5 @@
 import { live } from "./config.js";
-import { embed } from "./gemini.js";
+import { embed, within } from "./gemini.js";
 import { cosine, km, overlap } from "./vectors.js";
 import type { Run } from "./types.js";
 
@@ -58,7 +58,7 @@ export async function similar(text: string, opts: { near?: { lat: number; lng: n
   let q: number[] | undefined;
   if (live.gemini && pool.some((i) => i.vec))
     try {
-      [q] = await embed([text]);
+      [q] = await within(embed([text]), 4000);
     } catch {
       q = undefined;
     }

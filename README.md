@@ -8,18 +8,23 @@ Built for PromptWars x ACM SRM (Societal Benefit). Architecture: [docs/ARCHITECT
 
 ## Run it
 
+You need [Node.js 20+](https://nodejs.org) and [git](https://git-scm.com). Then one line:
+
+**Mac / Linux**
 ```bash
-npm install
-cp .env.example .env     # fill in whatever keys you have; blanks run in DEMO mode
-npm run build
-npm start                # http://localhost:8080
+git clone https://github.com/rehaanajani/paalam.git && cd paalam && npm run setup && npm start
 ```
 
+**Windows (PowerShell)**
+```powershell
+git clone https://github.com/rehaanajani/paalam.git; cd paalam; npm run setup; npm start
+```
+
+Open **http://localhost:8080**. Want a desktop window instead? Run `npm run desktop` in the same folder.
+
+To use your own Google Cloud keys, copy `.env.example` to `.env` and follow [docs/KEYS.md](docs/KEYS.md).
+
 For development with hot reload: `npm run dev` (web on :5173, API on :8080).
-
-**Desktop app (Electron):** `npm run desktop`. It starts its own Paalam server in the background on a free port and opens a native window, so there's nothing else to run. It's the same code as the website: change `web/` or `server/` and both get it. Server logs: `~/Library/Logs/Paalam/server.log`.
-
-**Double-clickable Mac app:** `npm run install:mac` builds `Paalam.app` (with the Argon gem icon) and installs it in Applications. The app never contains keys or data: it reads keys from `~/Library/Application Support/Paalam/.env` and keeps Bridges in `~/Library/Application Support/Paalam/data`, so the `.app` can be shared safely. Re-run the command after pulling changes to update it.
 
 **No keys yet?** Everything still works. Click *Try it: a Chennai family's flood-night WhatsApp*. Gemini's answers are scripted for that one scenario, but every tool really runs: add a Maps key and the places, routes and weather become live even in demo mode. Anything on sample data is marked **DEMO** in the UI.
 

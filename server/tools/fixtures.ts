@@ -45,7 +45,7 @@ export const demo = {
   search(question: string): ToolOutput {
     const q = String(question).toLowerCase();
     if (/relief|scheme|₹|5000|govt|government/.test(q))
-      return { ok: true, demo: true, summary: "No official ₹5000 flood-relief scheme with an online Aadhaar form was found. Official relief is announced on tn.gov.in and paid via ration-card lists, never through links.", data: { sources: [{ title: "Tamil Nadu Government (demo source)", url: "https://www.tn.gov.in" }] } };
+      return { ok: true, demo: true, summary: "No official ₹5000 flood-relief scheme with an online registration form was found. Official relief is announced on tn.gov.in and paid via ration-card lists, never through links.", data: { sources: [{ title: "Tamil Nadu Government (demo source)", url: "https://www.tn.gov.in" }] } };
     if (/flood|rain|water/.test(q))
       return { ok: true, demo: true, summary: "News reports waterlogging in Velachery and Pallikaranai after overnight rain; Greater Chennai Corporation has opened relief centres.", data: { sources: [{ title: "Greater Chennai Corporation (demo source)", url: "https://chennaicorporation.gov.in" }] } };
     return { ok: true, demo: true, summary: "Demo search: add GEMINI_API_KEY for live Google Search grounding.", data: { sources: [] } };

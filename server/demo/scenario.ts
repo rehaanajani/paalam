@@ -12,7 +12,7 @@ import type { Evidence, ToolCall } from "../types.js";
 
 export const sampleText = `Anna please help 🙏 Velachery Vijayanagar 3rd main road la irukom, veetukulla knee level thanni, still rising. Naan, amma, paati (78, sugar patient, nadakka mudiyadhu). Paati insulin fridge la irukku, current illa since last night. Phone 20% dhaan.
 
-Forwarded: 🇮🇳 TN Govt Flood Relief ₹5000 for every family! Register within 24 hours: http://tn-gov-relief.online/apply — enter Aadhaar number and OTP to receive money.`;
+Forwarded: 🇮🇳 TN Govt Flood Relief ₹5000 for every family! Register within 24 hours: http://tn-gov-relief.online/apply — enter your bank account number and OTP to receive money.`;
 
 export const sampleEvidence: Evidence[] = [
   {
@@ -34,14 +34,14 @@ export const sampleEvidence: Evidence[] = [
     kind: "image",
     name: "prescription.jpg",
     mimeType: "text/plain",
-    text: "Prescription (OCR): Patient: Lakshmi S., 78 F. Dx: Type 2 DM, HTN. Rx: 1) Inj. Human Mixtard 30/70: 18 U before breakfast, 12 U before dinner. 2) Tab Metformin 500 mg 1-0-1. 3) Tab Amlodipine 5 mg 1-0-0. Aadhaar: 4821 7730 9912. Ph: 98410 55321.",
+    text: "Prescription (OCR): Patient: Lakshmi S., 78 F. Dx: Type 2 DM, HTN. Rx: 1) Inj. Human Mixtard 30/70: 18 U before breakfast, 12 U before dinner. 2) Tab Metformin 500 mg 1-0-1. 3) Tab Amlodipine 5 mg 1-0-0. Ph: 98410 55321.",
   },
   {
     id: "E4",
     kind: "text",
     name: "forwarded-message.txt",
     mimeType: "text/plain",
-    text: "🇮🇳 TN Govt Flood Relief ₹5000 for every family! Register within 24 hours: http://tn-gov-relief.online/apply. Enter Aadhaar number and OTP to receive money. Forward to 10 groups.",
+    text: "🇮🇳 TN Govt Flood Relief ₹5000 for every family! Register within 24 hours: http://tn-gov-relief.online/apply. Enter your bank account number and OTP to receive money. Forward to 10 groups.",
   },
 ];
 
@@ -56,7 +56,7 @@ export const scenario = {
     fragments: [
       { gemId: "flood", title: "Family trapped by rising flood water", summary: "Three people including a 78-year-old who cannot walk are inside a house in Vijayanagar, Velachery, with knee-deep water still rising. They are asking for a boat.", evidence: ["E1", "E2"], urgency: "critical" as const },
       { gemId: "health", title: "Insulin at risk, fridge has no power", summary: "Paati (Lakshmi, 78) is on twice-daily insulin and metformin. The insulin was in a fridge that has had no power since last night.", evidence: ["E3", "E1"], urgency: "high" as const },
-      { gemId: "scam", title: "Fake ₹5000 flood-relief link", summary: "A forwarded message asks families to enter Aadhaar and OTP on a non-government site to get ₹5000.", evidence: ["E4"], urgency: "medium" as const },
+      { gemId: "scam", title: "Fake ₹5000 flood-relief link", summary: "A forwarded message asks families to enter bank details and OTP on a non-government site to get ₹5000.", evidence: ["E4"], urgency: "medium" as const },
     ],
   },
 
@@ -82,14 +82,14 @@ export const scenario = {
         { tool: "knowledge_search", argsJson: JSON.stringify({ query: "insulin storage without refrigeration during power cut" }), why: "official guidance" },
         { tool: "places_nearby", argsJson: JSON.stringify({ query: "24 hour pharmacy" }), why: "replacement insulin" },
         { tool: "route", argsJson: "{}", why: "how far" },
-        { tool: "redact", argsJson: JSON.stringify({ text: sampleEvidence[2]!.text }), why: "mask Aadhaar and phone before sharing" },
+        { tool: "redact", argsJson: JSON.stringify({ text: sampleEvidence[2]!.text }), why: "mask the phone number before sharing" },
       ],
     },
     scam: {
       facts: [],
       toolCalls: [
         { tool: "check_link", argsJson: JSON.stringify({ text: sampleEvidence[3]!.text }), why: "check the link and the ask" },
-        { tool: "search_web", argsJson: JSON.stringify({ question: "Is there a Tamil Nadu government ₹5000 flood relief scheme with online Aadhaar registration?" }), why: "does the scheme exist" },
+        { tool: "search_web", argsJson: JSON.stringify({ question: "Is there a Tamil Nadu government ₹5000 flood relief scheme with online registration?" }), why: "does the scheme exist" },
         { tool: "browse", argsJson: JSON.stringify({ url: `http://localhost:${config.port}/practice/complaint` }), why: "see the complaint form's fields" },
       ],
     },
@@ -191,9 +191,9 @@ export const scenario = {
           {
             kind: "share" as const,
             title: "Share masked medical summary",
-            detail: "One page for the rescue team or doctor: conditions, exact doses, what's at risk. Aadhaar and phone are masked.",
+            detail: "One page for the rescue team or doctor: conditions, exact doses, what's at risk. The phone number is masked.",
             effect: "Copies the summary or opens your share sheet. Nothing is sent automatically.",
-            payloadJson: JSON.stringify({ text: `MEDICAL SUMMARY: Lakshmi S., 78 F. T2DM + HTN. Insulin Human Mixtard 30/70: 18 U before breakfast, 12 U before dinner. Metformin 500 mg 1-0-1. Amlodipine 5 mg 1-0-0. Insulin unrefrigerated since last night. Cannot walk. Aadhaar 4821 7730 9912, ph 98410 55321.` }),
+            payloadJson: JSON.stringify({ text: `MEDICAL SUMMARY: Lakshmi S., 78 F. T2DM + HTN. Insulin Human Mixtard 30/70: 18 U before breakfast, 12 U before dinner. Metformin 500 mg 1-0-1. Amlodipine 5 mg 1-0-0. Insulin unrefrigerated since last night. Cannot walk. ph 98410 55321.` }),
             evidence: ["E3", id("redact")],
             unresolved: ["Last sugar reading"],
             priority: 1,
@@ -231,7 +231,7 @@ export const scenario = {
       const news = find(calls, "search_web");
       const id = (t: string) => calls.find((c) => c.tool === t)?.id ?? "";
       return {
-        summary: "This relief message is fake. The link is not a .gov.in site and it asks for Aadhaar and OTP, which no government scheme does. Don't open it; warn the family group.",
+        summary: "This relief message is fake. The link is not a .gov.in site and it asks for bank details and OTP, which no government scheme does. Don't open it; warn the family group.",
         facts: [
           { field: "Claim", value: "₹5000 flood relief per family, register within 24 hours", status: "reported" as const, sources: ["E4"], verification: "conflict" as const, note: "No official source has this scheme." },
           { field: "Link", value: "tn-gov-relief.online (not a .gov.in domain)", status: "inferred" as const, sources: ["E4", id("check_link")], verification: "verified" as const },
@@ -242,9 +242,9 @@ export const scenario = {
           {
             kind: "warn" as const,
             title: "Don't open the link",
-            detail: "It's built to steal Aadhaar and OTP. Entering them can empty a bank account.",
+            detail: "It's built to steal bank details and OTP. Entering them can empty a bank account.",
             effect: "Marks the message as a scam on this device.",
-            payloadJson: JSON.stringify({ text: "This ₹5000 relief link is fake. Never share Aadhaar or OTP." }),
+            payloadJson: JSON.stringify({ text: "This ₹5000 relief link is fake. Never share bank details or OTP." }),
             evidence: ["E4", id("check_link")],
             unresolved: [],
             priority: 1,
@@ -254,7 +254,7 @@ export const scenario = {
             title: "Warn the family group",
             detail: "Others in the group may already be filling it in.",
             effect: "Copies a short warning in Tamil and English for you to forward.",
-            payloadJson: JSON.stringify({ text: "⚠️ The '₹5000 TN Govt flood relief' link is FAKE. It's not a .gov.in site. Don't enter Aadhaar or OTP. Real relief comes through ration-card lists. இது போலி செய்தி. ஆதார், OTP கொடுக்காதீர்கள்." }),
+            payloadJson: JSON.stringify({ text: "⚠️ The '₹5000 TN Govt flood relief' link is FAKE. It's not a .gov.in site. Don't enter bank details or OTP. Real relief comes through ration-card lists. இது போலி செய்தி. வங்கி விவரங்கள், OTP கொடுக்காதீர்கள்." }),
             evidence: ["E4", id("check_link"), id("search_web")],
             unresolved: [],
             priority: 2,
@@ -266,7 +266,7 @@ export const scenario = {
             effect: "Creates one image you can save and forward. Nothing is sent.",
             payloadJson: JSON.stringify({
               headline: "₹5000 flood relief link is FAKE",
-              lines: ["It is not a .gov.in website", "No government scheme asks for Aadhaar or OTP on a link", "Don't open it. Don't forward it.", "Report fraud: call 1930", "போலி செய்தி. ஆதார், OTP கொடுக்காதீர்கள்."],
+              lines: ["It is not a .gov.in website", "No government scheme asks for bank details or OTP on a link", "Don't open it. Don't forward it.", "Report fraud: call 1930", "போலி செய்தி. வங்கி விவரங்கள், OTP கொடுக்காதீர்கள்."],
               lang: "English and Tamil",
             }),
             evidence: ["E4", id("check_link"), id("search_web")],
@@ -284,7 +284,7 @@ export const scenario = {
                 { field: "Type of incident", value: "Fake relief or scheme" },
                 { field: "Suspicious link or number", value: "http://tn-gov-relief.online/apply" },
                 { field: "When did you receive it?", value: new Date().toISOString().slice(0, 10) },
-                { field: "What happened?", value: "A WhatsApp forward claiming 'TN Govt Flood Relief ₹5000' asks families to enter Aadhaar and OTP at tn-gov-relief.online. It is not a .gov.in site and no such scheme exists on official sources." },
+                { field: "What happened?", value: "A WhatsApp forward claiming 'TN Govt Flood Relief ₹5000' asks families to enter bank details and OTP at tn-gov-relief.online. It is not a .gov.in site and no such scheme exists on official sources." },
                 { field: "I confirm the details are true", value: "true" },
                 { field: "OTP sent to your phone", value: "000000" },
               ],
@@ -298,7 +298,7 @@ export const scenario = {
             title: "Report to cybercrime helpline 1930",
             detail: "Reporting gets the domain taken down faster.",
             effect: "Opens the dialer with 1930.",
-            payloadJson: JSON.stringify({ number: "1930", script: "Reporting a phishing site tn-gov-relief.online pretending to be Tamil Nadu flood relief, collecting Aadhaar and OTP." }),
+            payloadJson: JSON.stringify({ number: "1930", script: "Reporting a phishing site tn-gov-relief.online pretending to be Tamil Nadu flood relief, collecting bank details and OTP." }),
             evidence: ["E4"],
             unresolved: [],
             priority: 4,

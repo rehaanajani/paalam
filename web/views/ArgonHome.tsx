@@ -8,7 +8,7 @@ import type { GemDef, Status } from "../types";
 
 const suggestions = [
   "Our street in Velachery is flooding and my grandfather can't walk. We're on the first floor.",
-  "Someone sent this 'PM relief ₹6000' link asking for Aadhaar and OTP. Is it real?",
+  "Someone sent this 'PM relief ₹6000' link asking for my bank details and OTP. Is it real?",
   "My mother has these three prescriptions and I don't understand the timings.",
 ];
 

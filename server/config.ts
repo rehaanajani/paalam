@@ -17,6 +17,8 @@ export const config = {
     gemModel: env("GEM_MODEL") || "gemini-3.6-flash",
     imageModel: env("IMAGE_MODEL") || "gemini-3.1-flash-image",
     embedModel: env("EMBED_MODEL") || "gemini-embedding-001",
+    // Embeddings on the global endpoint queue up under load; a regional one answers in ~2 s.
+    embedLocation: env("EMBED_LOCATION") || "us-central1",
   },
   modelArmor: {
     template: env("MODEL_ARMOR_TEMPLATE"),

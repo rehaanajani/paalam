@@ -10,11 +10,12 @@
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,magenta \"tsx watch server/index.ts\" \"vite\"",
     "build": "vite build",
-    "start": "NODE_ENV=production tsx server/index.ts",
+    "start": "tsx server/index.ts",
     "typecheck": "tsc --noEmit",
     "desktop": "vite build && electron .",
     "package": "vite build && electron-builder --mac --dir",
-    "install:mac": "npm run package && rm -rf /Applications/Paalam.app && cp -R dist-desktop/mac-arm64/Paalam.app /Applications/ && open /Applications/Paalam.app"
+    "install:mac": "npm run package && rm -rf /Applications/Paalam.app && cp -R dist-desktop/mac-arm64/Paalam.app /Applications/ && open /Applications/Paalam.app",
+    "setup": "npm install && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",

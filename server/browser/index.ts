@@ -19,6 +19,11 @@ const CHROME_PATHS = [
   "/usr/bin/chromium",
   "/usr/bin/chromium-browser",
   "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
 ].filter(Boolean) as string[];
 const chromePath = () => CHROME_PATHS.find((p) => existsSync(p));
 export const browserAvailable = () => !!chromePath();

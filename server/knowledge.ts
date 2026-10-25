@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { live } from "./config.js";
-import { embed } from "./gemini.js";
+import { embed, within } from "./gemini.js";
 import { cosine, overlap } from "./vectors.js";
 import { DATA_DIR } from "./paths.js";
 
@@ -90,9 +90,10 @@ export async function searchKnowledge(query: string, k = 3) {
   let scored: { c: Chunk; score: number }[];
   let engine = "keywords";
   try {
-    await ensureVectors();
+    await within(ensureVectors(), 4000);
     if (embedded) {
-      const [q] = await embed([query], "RETRIEVAL_QUERY");
+      // Meaning-based search if embeddings answer quickly, keyword search if not.
+      const [q] = await within(embed([query], "RETRIEVAL_QUERY"), 4000);
       scored = chunks.map((c) => ({ c, score: c.vec ? cosine(q!, c.vec) : 0 }));
       engine = "Gemini Embeddings";
     } else scored = chunks.map((c) => ({ c, score: overlap(query, `${c.title} ${c.text}`) }));

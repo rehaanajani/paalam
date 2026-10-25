@@ -116,11 +116,17 @@ export async function groundedSearch(question: string, usage?: Usage) {
   return { answer: res.text ?? "", sources };
 }
 
-/** Text embeddings for knowledge search and similar-report matching. */
-export async function embed(texts: string[], task: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY" | "SEMANTIC_SIMILARITY" = "SEMANTIC_SIMILARITY"): Promise<number[][]> {
+let embedClient: GoogleGenAI | null = null;
+const embedAi = () =>
+  config.gemini.apiKey ? ai() : (embedClient ??= new GoogleGenAI({ vertexai: true, project: config.gemini.project, location: config.gemini.embedLocation }));
+
+type EmbedTask = "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY" | "SEMANTIC_SIMILARITY";
+const pending = new Map<EmbedTask, { texts: string[]; waiters: { start: number; count: number; resolve: (v: number[][]) => void; reject: (e: unknown) => void }[]; timer: NodeJS.Timeout }>();
+
+async function embedNow(texts: string[], task: EmbedTask): Promise<number[][]> {
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += 100) {
-    const res = await ai().models.embedContent({
+    const res = await embedAi().models.embedContent({
       model: config.gemini.embedModel,
       contents: texts.slice(i, i + 100),
       config: { outputDimensionality: 768, taskType: task },
@@ -129,6 +135,40 @@ export async function embed(texts: string[], task: "RETRIEVAL_DOCUMENT" | "RETRI
   }
   return out;
 }
+
+/**
+ * Text embeddings for knowledge search and similar-report matching. Requests made
+ * within a few milliseconds of each other (three Gems searching at once) are merged
+ * into one call instead of queuing behind each other.
+ */
+export function embed(texts: string[], task: EmbedTask = "SEMANTIC_SIMILARITY"): Promise<number[][]> {
+  if (texts.length > 20) return embedNow(texts, task);
+  return new Promise((resolve, reject) => {
+    let batch = pending.get(task);
+    if (!batch) {
+      batch = {
+        texts: [],
+        waiters: [],
+        timer: setTimeout(async () => {
+          pending.delete(task);
+          try {
+            const vecs = await embedNow(batch!.texts, task);
+            for (const w of batch!.waiters) w.resolve(vecs.slice(w.start, w.start + w.count));
+          } catch (e) {
+            for (const w of batch!.waiters) w.reject(e);
+          }
+        }, 30),
+      };
+      pending.set(task, batch);
+    }
+    batch.waiters.push({ start: batch.texts.length, count: texts.length, resolve, reject });
+    batch.texts.push(...texts);
+  });
+}
+
+/** Resolves with the value, or rejects once `ms` pass: for calls with a cheaper fallback. */
+export const within = <T>(p: Promise<T>, ms: number) =>
+  Promise.race([p, new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`slower than ${ms} ms`)), ms))]);
 
 /** One image from Gemini's image model. Returns the bytes and their type. */
 export async function generateImage(prompt: string): Promise<{ data: Buffer; mimeType: string }> {
@@ -160,4 +200,22 @@ export async function checkModels() {
       }
     }),
   );
+}
+
+/**
+ * Google's first call on a fresh connection is slow (embeddings measured at ~16 s cold
+ * vs ~2 s warm). Warm the embedding and model connections at startup and every few
+ * minutes, with tiny calls, so a person's first message doesn't pay for it.
+ */
+export function keepWarm() {
+  if (!live.gemini) return;
+  const warm = async () => {
+    await Promise.allSettled([
+      embed(["warm"]),
+      ai().models.generateContent({ model: config.gemini.gemModel, contents: "ok", config: { maxOutputTokens: 1 } }),
+      ai().models.generateContent({ model: config.gemini.argonModel, contents: "ok", config: { maxOutputTokens: 1 } }),
+    ]);
+  };
+  void warm();
+  setInterval(warm, 4 * 60 * 1000).unref();
 }

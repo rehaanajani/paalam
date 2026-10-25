@@ -13,8 +13,8 @@ import type { ActionCard, Fact, Fragment, GemDef, GemResult, MapPin, ModelTier, 
 type Emit = (e: RunEvent) => void;
 type Audit = (who: string, what: string) => void;
 type NewGem = Pick<GemDef, "id" | "name" | "purpose" | "instructions" | "tools">;
-type SplitOut = { headline: string; language: string; locationHint: string; fragments: Omit<Fragment, "id">[]; newGem?: NewGem; harnessNote?: string };
-type PlanOut = { facts: Omit<Fact, "id">[]; toolCalls: { tool: string; argsJson: string; why: string }[] };
+type SplitOut = { headline: string; language: string; locationHint: string; fragments: Omit<Fragment, "id">[]; newGem?: NewGem; harnessNote?: string; reply?: string };
+type PlanOut = { facts?: Omit<Fact, "id">[]; toolCalls: { tool: string; argsJson: string; why: string }[] };
 type ActOut = {
   summary: string;
   facts: Omit<Fact, "id">[];
@@ -115,6 +115,15 @@ export async function runBridge(run: Run, emit: Emit) {
     const argonNote = addNote("argon", split.harnessNote, run.id);
     if (argonNote) audit("harness", argonNote);
 
+    // Nothing to act on (a greeting, a general question): Argon just answers, like a chat assistant.
+    if (!split.fragments.length) {
+      run.reply = split.reply?.trim() || "I'm here. Tell me what's happening (send a message, a voice note, photos or documents) and I'll work out what to do.";
+      audit("argon", "Nothing to act on, so I answered directly");
+      stage("done");
+      emit({ type: "done", data: run });
+      return;
+    }
+
     if (split.fragments.some((f) => f.gemId === "new" || !gems.get(f.gemId)) && split.newGem) {
       const gem = materialise(split.newGem, "auto");
       run.proposedGem = gem;
@@ -130,18 +139,21 @@ export async function runBridge(run: Run, emit: Emit) {
       await pace(350);
     }
 
-    // 2. Every Gem works in parallel
+    // 2. Every Gem works in parallel. Each one's result is checked by the trust layer and
+    // shown the moment it's ready, so a slow Gem never holds up a fast one.
     stage("gems");
-    run.results = await Promise.all(run.fragments.map((f) => runGem(run, f, emit, audit, pace)));
-
-    // 3. Trust layer (deterministic, after the model)
+    run.results = [];
+    await Promise.all(
+      run.fragments.map(async (f) => {
+        const r = await runGem(run, f, emit, audit, pace);
+        for (const c of await enforceTrust(r, run)) audit("trust", c);
+        run.results.push(r);
+        emit({ type: "result", gemId: r.gemId, data: r });
+      }),
+    );
+    run.results.sort((a, b) => run.fragments.findIndex((f) => f.id === a.fragmentId) - run.fragments.findIndex((f) => f.id === b.fragmentId));
     stage("verify");
-    await pace(600);
-    for (const r of run.results) {
-      for (const c of await enforceTrust(r, run)) audit("trust", c);
-      emit({ type: "result", gemId: r.gemId, data: r });
-      await pace(250);
-    }
+    await pace(400);
 
     stage("actions");
     const total = run.results.reduce((n, r) => n + r.actions.length, 0);
@@ -179,42 +191,54 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
         system,
         evidence,
         schema: planSchema,
-        prompt: `${brief}\n\nYour tools:\n${describeTools(gem.tools)}\n\nPass 1: draft facts, then pick tool calls.`,
+        prompt: `${brief}\n\nYour tools:\n${describeTools(gem.tools)}\n\nPass 1: pick the tool calls only (facts come in pass 2). Be brief.`,
       });
 
   // b. Run the tools. Only this Gem's tools are allowed; anything else is refused.
-  const calls: ToolCall[] = [];
+  // Three waves keep it fast: geocode first (others use its location), then everything
+  // independent at once, then routes (they need a place found in wave two).
   const freshness = evidence.filter((e) => e.kind === "image").map((e) => ({ tool: "check_freshness", argsJson: JSON.stringify({ evidenceId: e.id }), why: "photo age" }));
-  const wanted = [...plan.toolCalls.slice(0, 8), ...(gem.tools.includes("check_freshness") ? freshness : [])];
-  // Geocode first so later calls can use the place it found.
-  wanted.sort((a, b) => (a.tool === "geocode" ? -1 : b.tool === "geocode" ? 1 : 0));
-  for (const [i, want] of wanted.entries()) {
-    await pace(380);
-    const id = `T${i + 1}`;
+  const wanted = [...plan.toolCalls.slice(0, 8), ...(gem.tools.includes("check_freshness") ? freshness : [])].map((w, i) => ({ ...w, id: `T${i + 1}` }));
+  const results = new Map<string, ToolCall>();
+  const runOne = async (want: (typeof wanted)[number]) => {
     const args = parseArgs(want.argsJson);
     const tool = toolRegistry.get(want.tool);
     const started = Date.now();
     let call: ToolCall;
     if (!tool || !gem.tools.includes(want.tool)) {
-      call = { id, tool: want.tool, gemId: gem.id, args, ok: false, demo: false, summary: `Refused: ${gem.name} isn't allowed to use ${want.tool}`, ms: 0 };
+      call = { id: want.id, tool: want.tool, gemId: gem.id, args, ok: false, demo: false, summary: `Refused: ${gem.name} isn't allowed to use ${want.tool}`, ms: 0 };
     } else {
       try {
         if (want.tool === "route" && !args.to) {
-          const place = calls.find((c) => c.tool === "places_nearby" && c.ok)?.data?.places?.find((p: any) => p.openNow !== false);
+          const place = [...results.values()].find((c) => c.tool === "places_nearby" && c.ok)?.data?.places?.find((p: any) => p.openNow !== false);
           if (place) args.to = { lat: place.lat, lng: place.lng };
         }
         if (want.tool === "route" && !args.to) throw new Error("no destination yet");
-        const out = await tool.run(args, ctx);
-        call = { id, tool: want.tool, gemId: gem.id, args, ok: out.ok, demo: out.demo, summary: out.summary, data: out.data, ms: Date.now() - started };
+        // A slow tool must not hold the whole Gem up: past the limit, carry on without it.
+        const out = await Promise.race([
+          tool.run(args, ctx),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`timed out after ${budget.toolTimeoutMs / 1000}s, carried on without it`)), budget.toolTimeoutMs)),
+        ]);
+        call = { id: want.id, tool: want.tool, gemId: gem.id, args, ok: out.ok, demo: out.demo, summary: out.summary, data: out.data, ms: Date.now() - started };
         if (want.tool === "geocode" && out.ok && out.data?.lat) ctx.near = { lat: out.data.lat, lng: out.data.lng };
       } catch (e) {
         if (process.env.PAALAM_DEBUG) console.error(e);
-        call = { id, tool: want.tool, gemId: gem.id, args, ok: false, demo: false, summary: `Failed: ${(e as Error).message}`, ms: Date.now() - started };
+        call = { id: want.id, tool: want.tool, gemId: gem.id, args, ok: false, demo: false, summary: `Failed: ${(e as Error).message}`, ms: Date.now() - started };
       }
     }
-    calls.push(call);
+    results.set(want.id, call);
     emit({ type: "tool", gemId: gem.id, data: call });
+  };
+  const waves = [wanted.filter((w) => w.tool === "geocode"), wanted.filter((w) => w.tool !== "geocode" && w.tool !== "route"), wanted.filter((w) => w.tool === "route")];
+  for (const wave of waves) {
+    if (run.demo)
+      for (const w of wave) {
+        await pace(380); // the scripted demo reveals calls one by one
+        await runOne(w);
+      }
+    else await Promise.all(wave.map(runOne));
   }
+  const calls = wanted.map((w) => results.get(w.id)!).filter(Boolean);
   audit(gem.id, `Ran ${calls.length} tool call(s): ${calls.map((c) => `${c.tool}${c.ok ? "" : " ✗"}`).join(", ") || "none"}`);
 
   // c. Act: settle facts and propose actions. Over budget → finish from the plan without a second call.
@@ -224,7 +248,7 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
     act = scenario.act[fragment.gemId as keyof typeof scenario.act]!(calls, ctx);
   } else if (overBudget(run.usage)) {
     audit("harness", `${gem.name}: token budget reached, so it finished without the second pass`);
-    act = { summary: `${fragment.title}. Tool results are below. Review before acting.`, facts: plan.facts, actions: [] };
+    act = { summary: `${fragment.title}. Tool results are below. Review before acting.`, facts: plan.facts ?? [], actions: [] };
   } else {
     const toolReport = calls
       .map((c) => `${c.id} ${c.tool} ${c.ok ? "OK" : "FAILED"}${c.demo ? " (demo data)" : ""}: ${c.summary}${c.data ? `\n  data: ${JSON.stringify(c.data).slice(0, budget.toolDataChars)}` : ""}`)
@@ -237,7 +261,7 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
       // Media was already read in pass 1; its facts carry forward, so pass 2 is text only.
       evidence: evidence.filter((e) => !e.data),
       schema: actSchema,
-      prompt: `${brief}\n\nYour pass-1 facts:\n${JSON.stringify(plan.facts)}\n\nTool results:\n${toolReport || "(none)"}\n\nNumbers you may use: ambulance ${config.numbers.ambulance}, emergency ${config.numbers.emergency}, disaster helpline ${config.numbers.disaster}, cybercrime 1930, plus any phone a tool returned.\nPass 2: finalise facts, give lat/lng if a tool found one, propose 2-4 actions.`,
+      prompt: `${brief}\n\nTool results:\n${toolReport || "(none)"}\n\nNumbers you may use: ambulance ${config.numbers.ambulance}, emergency ${config.numbers.emergency}, disaster helpline ${config.numbers.disaster}, cybercrime 1930, plus any phone a tool returned.\nPass 2: at most 6 facts and 2-4 actions; detail and effect one short sentence each. Give lat/lng if a tool found one.`,
     });
     const note = addNote(`gem:${gem.id}`, act.harnessNote, run.id);
     if (note) audit("harness", note);

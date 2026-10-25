@@ -101,7 +101,7 @@ export const budget = {
   /** Hard ceiling for one run, across every call. Past it, Gems finish without a second pass. */
   perRun: num("RUN_TOKEN_BUDGET", 60000),
   argon: {
-    thinking: num("ARGON_THINKING_BUDGET", 1024),
+    thinking: num("ARGON_THINKING_BUDGET", 512),
     maxOutput: num("ARGON_MAX_OUTPUT", 2048),
     media: "MEDIA_RESOLUTION_LOW" as const, // routing needs gist, not detail
   },
@@ -112,6 +112,8 @@ export const budget = {
   },
   /** Short text-only input is routed by the fast model instead of Argon's. */
   downshiftChars: num("ROUTER_DOWNSHIFT_CHARS", 0),
+  /** A tool call that takes longer than this is dropped and the Gem carries on. */
+  toolTimeoutMs: num("TOOL_TIMEOUT_MS", 8000),
   /** Tool data passed back to a Gem is trimmed to this many characters per call. */
   toolDataChars: num("TOOL_DATA_CHARS", 600),
 };

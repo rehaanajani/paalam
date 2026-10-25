@@ -73,11 +73,20 @@ function wav(pcm: Float32Array, rate: number) {
 }
 
 /** Carries out the browser half of an approved action. */
-export async function runClient(client?: { open?: string; tel?: string; copy?: string; audio?: string | null; speak?: { text: string; lang: string } }) {
-  if (!client) return;
-  if (client.copy) await navigator.clipboard?.writeText(client.copy).catch(() => {});
-  if (client.open) window.open(client.open, "_blank", "noopener");
-  if (client.tel) window.location.href = `tel:${client.tel}`;
+export async function runClient(
+  client?: { open?: string; tel?: string; copy?: string; audio?: string | null; speak?: { text: string; lang: string } },
+  done: { tel?: boolean; copy?: boolean; popup?: Window | null } = {},
+) {
+  if (!client) {
+    done.popup?.close();
+    return;
+  }
+  if (client.copy && !done.copy) await navigator.clipboard?.writeText(client.copy).catch(() => {});
+  if (client.open) {
+    if (done.popup && !done.popup.closed) done.popup.location.href = client.open;
+    else window.open(client.open, "_blank", "noopener");
+  } else done.popup?.close();
+  if (client.tel && !done.tel) window.location.href = `tel:${client.tel}`;
   if (client.audio) await new Audio(`data:audio/mp3;base64,${client.audio}`).play().catch(() => {});
   else if (client.speak && "speechSynthesis" in window) {
     const u = new SpeechSynthesisUtterance(client.speak.text);

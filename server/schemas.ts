@@ -24,6 +24,7 @@ export const splitSchema = {
         required: ["gemId", "title", "summary", "evidence", "urgency"],
       },
     },
+    reply: str("Only when there is NO real-world problem to act on (a greeting, small talk, a general question, a question about Paalam): your direct answer to the person, friendly and under 80 words, in their language. Return no fragments then. Leave empty otherwise."),
     harnessNote: str("Optional: one rule (≤25 words) worth adding to your playbook for future runs. Leave empty if none."),
     newGem: {
       type: "object",
@@ -57,7 +58,6 @@ const factItem = {
 export const planSchema = {
   type: "object",
   properties: {
-    facts: { type: "array", items: factItem },
     toolCalls: {
       type: "array",
       description: "Up to 8 calls to your tools that would verify facts or find help",
@@ -66,13 +66,13 @@ export const planSchema = {
         properties: {
           tool: str(),
           argsJson: str("arguments as a JSON object string"),
-          why: str(),
+          why: str("a few words"),
         },
         required: ["tool", "argsJson", "why"],
       },
     },
   },
-  required: ["facts", "toolCalls"],
+  required: ["toolCalls"],
 };
 
 export const actSchema = {

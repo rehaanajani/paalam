@@ -147,6 +147,8 @@ export interface Run {
   headline?: string;
   fragments: Fragment[];
   results: GemResult[];
+  /** Argon's direct answer when the message had nothing to act on */
+  reply?: string;
   /** set when no Gem fitted and Argon drafted one */
   proposedGem?: GemDef;
   audit: AuditEntry[];

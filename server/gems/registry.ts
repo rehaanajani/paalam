@@ -39,7 +39,7 @@ Propose: a one-page medical summary to share with a doctor, navigation to an ope
   {
     id: "scam",
     name: "Scam Shield",
-    purpose: "Forwarded messages, suspicious links, offers of money or relief, requests for Aadhaar, OTP or bank details.",
+    purpose: "Forwarded messages, suspicious links, offers of money or relief, requests for ID numbers, OTP or bank details.",
     instructions: `You protect people from scams that spread during crises.
 Check every link and claim with check_link, and confirm with search_web whether the scheme exists on an official .gov.in source.
 Use redact to show which personal details the message tries to collect.

@@ -5,6 +5,25 @@ import { api, runClient } from "../api";
 import { Gem } from "./Gem";
 import type { ActionCard as Card, GemDef, ToolCall } from "../types";
 
+const touch = () => matchMedia("(pointer: coarse)").matches;
+
+/** Whatever must happen inside the tap: dial, open a window for Maps, share or copy. */
+function actNow(kind: Card["kind"], p: Record<string, any>) {
+  const out = { tel: false, copy: false, popup: null as Window | null };
+  if (kind === "call" && p.number) {
+    window.location.href = `tel:${String(p.number).replace(/[^\d+]/g, "")}`;
+    out.tel = true;
+  }
+  if (kind === "navigate") out.popup = window.open("about:blank", "_blank");
+  const text = (kind === "share" || kind === "sms" || kind === "request" || kind === "alert") && (p.text || p.body);
+  if (text) {
+    if (touch() && "share" in navigator) void navigator.share({ text: String(text) }).catch(() => {});
+    else void navigator.clipboard?.writeText(String(text)).catch(() => {});
+    out.copy = true;
+  }
+  return out;
+}
+
 const icons = { navigate: Navigation, call: Phone, sms: MessageSquare, share: Share2, alert: BellRing, readback: Volume2, request: Send, warn: ShieldAlert, browser_fill: Globe, browser_submit: MousePointerClick, poster: ImageIcon };
 
 /**
@@ -20,10 +39,14 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
   async function decide(approve: boolean) {
     setBusy(true);
     setErr("");
+    // Phones only let a page open the dialer, Maps or the share sheet during the tap itself,
+    // so those happen now; the server records the approval right after.
+    const p = card.payload as Record<string, any>;
+    const handled = approve ? actNow(card.kind, p) : { tel: false, copy: false, popup: null as Window | null };
     try {
       const r = await api<{ action: Card; client?: Parameters<typeof runClient>[0]; followUp?: Card }>(`runs/${runId}/actions/${card.id}`, { json: { approve } });
       onChange(r.action, r.followUp);
-      if (approve) await runClient(r.client);
+      if (approve) await runClient(r.client, handled);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
