@@ -2570,3 +2570,51 @@ button.bot-pill:hover {
 .action-card.status-done .shot img[src*="shots"] {
   max-height: none;
 }
+.offline-banner {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  max-width: min(640px, 90%);
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 13px;
+  box-shadow: var(--shadow);
+}
+.offline-banner code {
+  background: rgba(0, 0, 0, 0.12);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ---------- Desktop app (Electron) ---------- */
+.desktop .sidebar-top,
+.desktop .chat-head {
+  -webkit-app-region: drag;
+}
+.desktop .sidebar-top button,
+.desktop .bot-pill-wrap,
+.desktop .sidebar-reveal {
+  -webkit-app-region: no-drag;
+}
+.desktop.platform-darwin .sidebar-top {
+  padding-left: 84px;
+}
+.desktop.platform-darwin .sidebar-reveal {
+  left: 84px;
+}
+.desktop {
+  user-select: none;
+}
+.desktop .bubble,
+.desktop .result-card,
+.desktop .action-card,
+.desktop textarea,
+.desktop input,
+.desktop pre,
+.desktop code {
+  user-select: text;
+}

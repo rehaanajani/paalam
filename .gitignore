@@ -8,3 +8,4 @@ data/
 *-sa.json
 service-account*.json
 .DS_Store
+dist-desktop

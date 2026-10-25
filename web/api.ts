@@ -1,12 +1,21 @@
 export async function api<T = any>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
-  const res = await fetch(`/api/${path}`, {
+  const res = await fetchOrExplain(`/api/${path}`, {
     ...rest,
     ...(json !== undefined ? { method: rest.method ?? "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(json) } : {}),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
   return body as T;
+}
+
+/** A network failure means the server is down; say that instead of "Failed to fetch". */
+async function fetchOrExplain(url: string, init: RequestInit) {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new Error("Can't reach Paalam's server. Is it running? (npm start)");
+  }
 }
 
 /** Records the microphone and returns 16 kHz mono WAV: a format Gemini reads directly, and small. */

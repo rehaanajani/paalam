@@ -2,7 +2,7 @@ import { CircleCheck, CircleDashed, ExternalLink } from "lucide-react";
 import type { Status, ToolInfo } from "../types";
 
 const where: Record<string, { label: string; url: string }> = {
-  gemini: { label: "AI Studio → Get API key", url: "https://aistudio.google.com/apikey" },
+  gemini: { label: "Vertex AI → Model Garden", url: "https://console.cloud.google.com/vertex-ai/model-garden" },
   maps: { label: "Cloud console → Credentials", url: "https://console.cloud.google.com/apis/credentials" },
   cloud: { label: "Cloud console → Credentials", url: "https://console.cloud.google.com/apis/credentials" },
   dlp: { label: "IAM → Service accounts (paalam)", url: "https://console.cloud.google.com/iam-admin/serviceaccounts" },

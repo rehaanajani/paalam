@@ -11,7 +11,9 @@
     "dev": "concurrently -k -n api,web -c blue,magenta \"tsx watch server/index.ts\" \"vite\"",
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "desktop": "vite build && electron .",
+    "package": "vite build && electron-builder --mac --dir"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
@@ -36,7 +38,9 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^9.2.1",
+    "electron": "^45.0.0",
     "typescript": "^5.9.3",
     "vite": "^8.3.5"
-  }
+  },
+  "main": "desktop/main.mjs"
 }

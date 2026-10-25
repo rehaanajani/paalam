@@ -37,6 +37,7 @@ export function App() {
   const [folded, setFolded] = useState<Set<string>>(new Set());
   const [fresh, setFresh] = useState<Set<string>>(new Set()); // Gem tabs showing a new conversation
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const [offline, setOffline] = useState(false);
 
   const loadGems = () => api<GemDef[]>("gems").then(setGems);
   const loadThreads = () => api<ThreadRow[]>("threads").then(setThreads);
@@ -59,11 +60,26 @@ export function App() {
       }
     };
     addEventListener("keydown", keys);
-    void loadGems();
-    void loadThreads();
-    api<ToolInfo[]>("tools").then(setTools);
-    api<Status>("status").then(setStatus);
-    const poll = setInterval(loadThreads, 4000);
+    // One heartbeat keeps everything fresh and notices when the server goes away or comes back.
+    let wasOffline = true;
+    const beat = async () => {
+      try {
+        const s = await api<Status>("status");
+        setStatus(s);
+        setOffline(false);
+        if (wasOffline) {
+          void loadGems();
+          api<ToolInfo[]>("tools").then(setTools);
+        }
+        wasOffline = false;
+        void loadThreads().catch(() => {});
+      } catch {
+        wasOffline = true;
+        setOffline(true);
+      }
+    };
+    void beat();
+    const poll = setInterval(beat, 4000);
     return () => {
       removeEventListener("hashchange", on);
       removeEventListener("keydown", keys);
@@ -272,6 +288,11 @@ export function App() {
         <button className="sidebar-reveal icon ghost" aria-label="Show sidebar" tabIndex={collapsed ? 0 : -1} aria-hidden={!collapsed} onClick={() => setCollapsed(false)} title="Show sidebar  ⌘\">
           <PanelLeft size={17} />
         </button>
+        {offline && (
+          <div className="offline-banner" role="status">
+            <b>Paalam's server isn't running.</b> Start it with <code>npm start</code> in the Paalam folder (or open the desktop app). This page reconnects by itself.
+          </div>
+        )}
         {err && (
           <div className="error-toast" onClick={() => setErr("")}>
             {err}
