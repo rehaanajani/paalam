@@ -43,7 +43,21 @@ async function open(): Promise<{ context: BrowserContext; page: Page }> {
   if (!path) throw new Error("No Chrome or Chromium found. Install Chrome, or set PAALAM_CHROME_PATH.");
   if (!browser?.isConnected()) {
     const { chromium } = await import("playwright-core");
-    browser = await chromium.launch({ executablePath: path, headless: !headful(), args: ["--no-first-run", "--disable-dev-shm-usage"] });
+    browser = await chromium.launch({
+      executablePath: path,
+      headless: !headful(),
+      // Keep Chrome's updater and background services off: Paalam's browser must never touch the installed
+      // app (on macOS that would make the OS ask to let node manage other apps).
+      args: [
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-dev-shm-usage",
+        "--disable-component-update",
+        "--disable-background-networking",
+        "--disable-sync",
+        "--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT",
+      ],
+    });
   }
   const context = await browser.newContext({ viewport: { width: 1100, height: 900 }, locale: "en-IN", acceptDownloads: false, serviceWorkers: "block" });
   // Every request the page makes is checked, not just the first URL.
@@ -181,7 +195,7 @@ export async function fillForm(raw: string, steps: FillStep[]) {
         refused.push(`${step.field}: not found`);
         continue;
       }
-      const meta = { tag: await el.evaluate("n => n.tagName") as string, type: ((await el.getAttribute("type")) ?? "").toLowerCase(), name: (await el.getAttribute("name")) ?? "", auto: (await el.getAttribute("autocomplete")) ?? "" };
+      const meta = { tag: (await el.locator("xpath=self::select").count()) ? "SELECT" : "", type:((await el.getAttribute("type")) ?? "").toLowerCase(), name: (await el.getAttribute("name")) ?? "", auto: (await el.getAttribute("autocomplete")) ?? "" };
       if (meta.type === "password" || FORBIDDEN_FIELD.test(`${step.field} ${meta.name} ${meta.auto}`)) {
         refused.push(`${step.field}: Paalam never fills passwords, OTPs, PINs or card details`);
         continue;
