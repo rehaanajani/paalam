@@ -12,6 +12,10 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { sampleEvidence, sampleText } from "./demo/scenario.js";
+import { loadPlugins, pluginReports } from "./plugins.js";
+import { practiceRoutes } from "./practice.js";
+import { getShot, browserAvailable } from "./browser/index.js";
+import { allowPractice } from "./browser/net.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
 const app = express();
@@ -41,6 +45,18 @@ const kindOf = (mime: string): Evidence["kind"] =>
   mime.startsWith("image/") ? "image" : mime.startsWith("audio/") || mime === "video/webm" ? "audio" : mime === "application/pdf" ? "pdf" : mime.startsWith("text/") ? "text" : "other";
 
 // ── Routes ─────────────────────────────────────────────────────
+practiceRoutes(app);
+allowPractice(config.port);
+
+app.get("/api/shots/:id", (req, res) => {
+  const png = getShot(req.params.id);
+  png ? res.type("jpeg").set("cache-control", "private, max-age=3600").send(png) : res.status(404).end();
+});
+
+app.get("/api/plugins", (_req, res) => res.json({ reports: pluginReports(), browser: browserAvailable() }));
+app.post("/api/plugins/reload", async (_req, res) => {
+  res.json({ reports: await loadPlugins() });
+});
 app.get("/api/status", (_req, res) => {
   res.json({ demo: !live.gemini, integrations: integrationStatus(), city: config.city, numbers: config.numbers, sample: { text: sampleText, evidence: sampleEvidence.map(({ id, name, kind }) => ({ id, name, kind })) } });
 });
@@ -187,8 +203,13 @@ app.post("/api/runs/:id/actions/:actionId", async (req, res) => {
     const out = await execute(action, run);
     action.status = out.ok ? "done" : "failed";
     action.result = out.result;
+    if (out.shotId) action.shotId = out.shotId;
     run.audit.push({ at: new Date().toISOString(), who: action.gemId, what: out.result });
-    res.json({ action, client: out.client });
+    if (out.followUp) {
+      const result = run.results.find((r) => r.actions.includes(action));
+      result?.actions.splice(result.actions.indexOf(action) + 1, 0, out.followUp);
+    }
+    res.json({ action, client: out.client, followUp: out.followUp });
   } catch (e) {
     action.status = "failed";
     action.result = (e as Error).message;
@@ -203,6 +224,7 @@ if (existsSync(dist)) {
   app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(join(dist, "index.html")));
 }
 
+await loadPlugins();
 app.listen(config.port, () => {
   const on = integrationStatus().filter((i) => i.live).map((i) => i.id);
   console.log(`Paalam on http://localhost:${config.port}  ·  ${live.gemini ? "live" : "DEMO mode"}  ·  live: ${on.join(", ") || "none"}`);

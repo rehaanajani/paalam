@@ -151,6 +151,22 @@ Adding a tool = one object in the registry. Every Gem can then tick it.
 
 ---
 
+## 5b. Browser
+
+`server/browser/`. Three levels, each gated more tightly than the last:
+
+| Level | Tool / action | What it does | Guard |
+|---|---|---|---|
+| Read | `read_url` tool | Fetch a public page as text | URL check plus DNS check on every redirect; private, local and metadata addresses refused |
+| See | `browse` tool | Open the page in Chrome/Chromium; return its text, its **form fields** (labels, required, options) and a screenshot | Every request the page makes is re-checked; screenshots are stored by id and never sent to a model |
+| Act | `browser_fill` action | Fill the fields a human approved, field by field, then **stop** | Card lists every field and value; passwords, OTPs, PINs and card fields are refused at the trust layer *and* in the browser; a separate `browser_submit` card is needed to send |
+
+The demo uses Paalam's own **practice form** (`/practice/complaint`), clearly labelled and sending nowhere, so the flow can be shown offline without imitating any real site.
+
+## 5c. Plugins
+
+`server/plugins.ts` loads `plugins/tools/*.ts|js` (default-export a tool) and `plugins/gems/*.json` at startup and on **Settings → Plugins → Reload**. Plugin tools can't replace built-ins; plugin Gems can't be overwritten from the UI. Guide: [PLUGINS.md](PLUGINS.md).
+
 ## 6. Actions and what really happens
 
 `server/execute.ts`. Runs only after approval.
@@ -164,6 +180,8 @@ Adding a tool = one object in the registry. Every Gem can then tick it.
 | request / alert | **Simulated** control-room dispatch, logged as an incident. A real integration needs an agency API |
 | readback | Cloud TTS in Tamil, or the browser voice |
 | warn | Marks it on this device |
+| browser_fill | Opens the page, fills the approved fields, screenshots it, **stops**; adds a Submit card |
+| browser_submit | Presses submit on the page Paalam is holding (15-minute limit), screenshots the result |
 
 Anything simulated says so in its result. Nothing pretends to have been sent.
 

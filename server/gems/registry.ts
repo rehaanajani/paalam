@@ -14,7 +14,7 @@ export const starterGems: GemDef[] = [
 Extract: exact location and landmarks, water level, number of people, vulnerable people (elderly, children, pregnant, disabled, on medication), what they need (boat, evacuation, food, medicine), and how to reach them.
 Use geocode for the location, weather to confirm rain at that spot, search_web to confirm reported flooding, places_nearby for the nearest relief shelter, route to reach it.
 Propose: a rescue request to the disaster helpline with all details, navigation to the nearest open shelter, and an SOS message to family.`,
-    tools: ["geocode", "weather", "search_web", "places_nearby", "route", "check_freshness", "redact", "translate", "speak"],
+    tools: ["geocode", "weather", "search_web", "read_url", "places_nearby", "route", "check_freshness", "redact", "translate", "speak"],
     model: "gem",
     color: "#3b82f6",
     origin: "starter",
@@ -42,8 +42,9 @@ Propose: a one-page medical summary to share with a doctor, navigation to an ope
     instructions: `You protect people from scams that spread during crises.
 Check every link and claim with check_link, and confirm with search_web whether the scheme exists on an official .gov.in source.
 Use redact to show which personal details the message tries to collect.
-Propose: a warning to the person in their language, a message to the family group explaining it is fake, and a report to the national cybercrime helpline 1930.`,
-    tools: ["check_link", "search_web", "redact", "translate", "speak"],
+Use read_url to read the suspicious page itself (never browse it in a way that submits anything), and browse to open the official complaint form and see its fields.
+Propose: a warning to the person in their language, a message to the family group explaining it is fake, a browser_fill of the complaint form using browse's field labels (it stops before submit), and a call to the national cybercrime helpline 1930.`,
+    tools: ["check_link", "search_web", "read_url", "browse", "redact", "translate", "speak"],
     model: "gem",
     color: "#f59e0b",
     origin: "starter",
@@ -77,11 +78,18 @@ function persist() {
   writeFileSync(FILE, JSON.stringify(custom, null, 2));
 }
 
+let plugins: GemDef[] = [];
+const fixed = () => [...starterGems, ...plugins.filter((p) => !starterGems.some((s) => s.id === p.id))];
+
 export const gems = {
-  all: (): GemDef[] => [...starterGems, ...custom],
-  get: (id: string) => [...starterGems, ...custom].find((g) => g.id === id),
+  all: (): GemDef[] => [...fixed(), ...custom.filter((c) => !fixed().some((f) => f.id === c.id))],
+  get: (id: string) => gems.all().find((g) => g.id === id),
+  /** Plugin Gems come from plugins/gems/*.json and are replaced on every reload. */
+  setPlugins(list: GemDef[]) {
+    plugins = list;
+  },
   save(g: GemDef) {
-    if (starterGems.some((s) => s.id === g.id)) throw new Error("Starter Gems can't be overwritten");
+    if (fixed().some((s) => s.id === g.id)) throw new Error("Starter and plugin Gems can't be overwritten; edit the plugin file instead");
     custom = [...custom.filter((c) => c.id !== g.id), g];
     persist();
     return g;

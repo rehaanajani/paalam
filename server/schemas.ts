@@ -90,11 +90,11 @@ export const actSchema = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["navigate", "call", "sms", "share", "alert", "readback", "request", "warn"] },
+          kind: { type: "string", enum: ["navigate", "call", "sms", "share", "alert", "readback", "request", "warn", "browser_fill"] },
           title: str("Imperative, e.g. 'Send rescue request to 1070'"),
           detail: str("Why, in one or two sentences"),
           effect: str("Exactly what happens if approved"),
-          payloadJson: str("JSON object string: navigate {lat,lng,label}; call {number,script}; sms {to,body}; share {text}; alert {to,body}; request {to,body}; readback {text,lang}; warn {text}"),
+          payloadJson: str("JSON object string: navigate {lat,lng,label}; call {number,script}; sms {to,body}; share {text}; alert {to,body}; request {to,body}; readback {text,lang}; warn {text}; browser_fill {url, steps:[{field, value}]} using field labels the browse tool reported (never passwords/OTP/card/PIN; it stops before submit)"),
           evidence: strs("evidence and tool ids backing this action"),
           unresolved: strs("what is still unknown that a human should check"),
           priority: { type: "integer" },

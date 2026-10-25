@@ -1,17 +1,17 @@
 import type { CSSProperties } from "react";
 import { useState, type KeyboardEvent } from "react";
-import { AlertTriangle, BellRing, Check, MessageSquare, Navigation, Phone, Send, Share2, ShieldAlert, Volume2, X } from "lucide-react";
+import { AlertTriangle, BellRing, Check, Globe, MessageSquare, MousePointerClick, Navigation, Phone, Send, Share2, ShieldAlert, Volume2, X } from "lucide-react";
 import { api, runClient } from "../api";
 import { Gem } from "./Gem";
 import type { ActionCard as Card, GemDef, ToolCall } from "../types";
 
-const icons = { navigate: Navigation, call: Phone, sms: MessageSquare, share: Share2, alert: BellRing, readback: Volume2, request: Send, warn: ShieldAlert };
+const icons = { navigate: Navigation, call: Phone, sms: MessageSquare, share: Share2, alert: BellRing, readback: Volume2, request: Send, warn: ShieldAlert, browser_fill: Globe, browser_submit: MousePointerClick };
 
 /**
  * One proposed action, asked as a question with lettered answers like Socius's
  * approval cards. Approval covers exactly what's shown; nothing runs without it.
  */
-export function ActionCard({ runId, card, gem, tools, onChange }: { runId: string; card: Card; gem?: GemDef; tools: ToolCall[]; onChange: (c: Card) => void }) {
+export function ActionCard({ runId, card, gem, tools, onChange }: { runId: string; card: Card; gem?: GemDef; tools: ToolCall[]; onChange: (c: Card, followUp?: Card) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const Icon = icons[card.kind] ?? Send;
@@ -20,8 +20,8 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
     setBusy(true);
     setErr("");
     try {
-      const r = await api<{ action: Card; client?: Parameters<typeof runClient>[0] }>(`runs/${runId}/actions/${card.id}`, { json: { approve } });
-      onChange(r.action);
+      const r = await api<{ action: Card; client?: Parameters<typeof runClient>[0]; followUp?: Card }>(`runs/${runId}/actions/${card.id}`, { json: { approve } });
+      onChange(r.action, r.followUp);
       if (approve) await runClient(r.client);
     } catch (e) {
       setErr((e as Error).message);
@@ -58,6 +58,19 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
       <div className="action-effect">
         <span>If you approve</span>
         {card.effect}
+        {card.kind === "browser_fill" && Array.isArray(card.payload.steps) && (
+          <>
+            <code className="fill-url">{String(card.payload.url ?? "")}</code>
+            <dl className="fill-steps">
+              {(card.payload.steps as { field: string; value: string }[]).map((st) => (
+                <div key={st.field}>
+                  <dt>{st.field}</dt>
+                  <dd>{st.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </>
+        )}
       </div>
       {card.unresolved.length > 0 && (
         <ul className="unresolved">
@@ -91,6 +104,11 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
           {card.status === "declined" ? <X size={14} /> : <Check size={14} />}
           {card.status === "declined" ? "Skipped" : card.result}
         </div>
+      )}
+      {card.shotId && (
+        <a className="shot" href={`/api/shots/${card.shotId}`} target="_blank" rel="noreferrer" title="Open the full screenshot">
+          <img src={`/api/shots/${card.shotId}`} alt={`Screenshot after: ${card.title}`} loading="lazy" />
+        </a>
       )}
       {err && <div className="err">{err}</div>}
     </div>

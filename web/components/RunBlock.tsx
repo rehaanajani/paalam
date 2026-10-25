@@ -16,7 +16,7 @@ interface Live {
   audit: AuditEntry[];
   error?: string;
 }
-type Ev = RunEvent | { type: "load"; data: Run } | { type: "card"; data: Card };
+type Ev = RunEvent | { type: "load"; data: Run } | { type: "card"; data: Card; followUp?: Card };
 
 function reduce(s: Live, e: Ev): Live {
   switch (e.type) {
@@ -45,8 +45,20 @@ function reduce(s: Live, e: Ev): Live {
     }
     case "error":
       return { ...s, stage: "error", error: String(e.data) };
-    case "card":
-      return { ...s, results: s.results.map((r) => ({ ...r, actions: r.actions.map((a) => (a.id === e.data.id ? e.data : a)) })) };
+    case "card": {
+      const { data, followUp } = e;
+      return {
+        ...s,
+        results: s.results.map((r) => {
+          const i = r.actions.findIndex((a) => a.id === data.id);
+          if (i < 0) return r;
+          const actions = [...r.actions];
+          actions[i] = data;
+          if (followUp && !actions.some((a) => a.id === followUp.id)) actions.splice(i + 1, 0, followUp);
+          return { ...r, actions };
+        }),
+      };
+    }
   }
   return s;
 }
@@ -243,7 +255,7 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
               </div>
             )}
             {r?.actions.map((a) => (
-              <ActionCard key={a.id} runId={runId} card={a} gem={g} tools={r.tools} onChange={(c) => dispatch({ type: "card", data: c })} />
+              <ActionCard key={a.id} runId={runId} card={a} gem={g} tools={r.tools} onChange={(c, followUp) => dispatch({ type: "card", data: c, ...(followUp ? { followUp } : {}) })} />
             ))}
           </article>
         );

@@ -4,6 +4,7 @@ import { groundedSearch } from "../gemini.js";
 import { redact } from "./redact.js";
 import { getJSON, postJSON } from "./http.js";
 import { demo } from "./fixtures.js";
+import { browse, browserAvailable, readUrl } from "../browser/index.js";
 import type { Evidence } from "../types.js";
 import type { Usage } from "../harness/index.js";
 
@@ -24,7 +25,7 @@ export interface ToolOutput {
 export interface ToolDef {
   id: string;
   name: string;
-  group: "Ground" | "Maps" | "Verify" | "Protect" | "Speak" | "Health";
+  group: "Ground" | "Maps" | "Verify" | "Protect" | "Speak" | "Health" | "Browser" | (string & {});
   /** what the Gem reads when deciding to call it */
   description: string;
   args: string;
@@ -297,9 +298,44 @@ const tools: ToolDef[] = [
       }
     },
   },
+  {
+    id: "read_url",
+    name: "Read a link",
+    group: "Browser",
+    description: "Fetch a web page as plain text: a news report, a government notice, a link someone forwarded. Private and local addresses are refused.",
+    args: '{ "url": string }',
+    needs: "none",
+    live: () => true,
+    async run({ url }) {
+      const r = await readUrl(String(url));
+      return { ok: r.status < 400, demo: false, summary: `${r.title || r.url}${r.status >= 400 ? ` (HTTP ${r.status})` : ""}: ${r.text.slice(0, 200)}`, data: r };
+    },
+  },
+  {
+    id: "browse",
+    name: "Browser: open a page",
+    group: "Browser",
+    description: "Open a page in a real browser to see what it shows and which form fields it has (labels, required, options). Use before proposing a browser_fill action.",
+    args: '{ "url": string }',
+    needs: "Chrome or Chromium on the server",
+    live: browserAvailable,
+    async run({ url }) {
+      if (!browserAvailable()) return { ok: false, demo: false, summary: "No Chrome/Chromium on this server. Set PAALAM_CHROME_PATH." };
+      const r = await browse(String(url));
+      const fields = r.fields.map((f) => `${f.label || f.name}${f.required ? "*" : ""} (${f.type}${f.options ? `: ${f.options.join("/")}` : ""})${f.forbidden ? " [never filled]" : ""}`);
+      return { ok: true, demo: false, summary: `${r.title}: ${r.fields.length} form field(s)${fields.length ? `: ${fields.slice(0, 8).join("; ")}` : ""}`, data: { ...r, fieldList: fields } };
+    },
+  },
 ];
 
 export const toolRegistry = new Map(tools.map((t) => [t.id, t]));
+
+/** Plugins add tools here at startup. A plugin can't replace a built-in tool. */
+export function registerTool(t: ToolDef) {
+  const existing = toolRegistry.get(t.id);
+  if (existing && tools.includes(existing)) throw new Error(`"${t.id}" is a built-in tool`);
+  toolRegistry.set(t.id, t);
+}
 
 /** What a Gem's prompt sees: only its own tools. */
 export function describeTools(ids: string[]) {
@@ -311,7 +347,7 @@ export function describeTools(ids: string[]) {
 }
 
 export function publicTools() {
-  return tools.map(({ id, name, group, description, needs, live }) => ({ id, name, group, description, needs, live: live() }));
+  return [...toolRegistry.values()].map(({ id, name, group, description, needs, live }) => ({ id, name, group, description, needs, live: live(), plugin: !tools.some((t) => t.id === id) }));
 }
 
 /** EXIF date and GPS for uploaded photos; WhatsApp strips these, which itself is a signal. */

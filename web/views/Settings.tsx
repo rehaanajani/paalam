@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { Cable, Gem as GemIcon, Monitor, Moon, NotebookPen, SlidersHorizontal, Sun, X } from "lucide-react";
+import { Cable, Gem as GemIcon, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, X } from "lucide-react";
+import { Plugins } from "./Plugins";
 import { GemStudio } from "./GemStudio";
 import { Harness } from "./Harness";
 import { Integrations } from "./Integrations";
 import { applyTheme, type Theme } from "../theme";
 import type { GemDef, Status, ToolInfo } from "../types";
 
-export type SettingsTab = "general" | "gems" | "harness" | "integrations";
+export type SettingsTab = "general" | "gems" | "plugins" | "harness" | "integrations";
 
 const tabs: { id: SettingsTab; label: string; icon: typeof Cable }[] = [
   { id: "general", label: "General", icon: SlidersHorizontal },
   { id: "gems", label: "Gems", icon: GemIcon },
+  { id: "plugins", label: "Plugins", icon: Puzzle },
   { id: "harness", label: "Harness", icon: NotebookPen },
   { id: "integrations", label: "Keys", icon: Cable },
 ];
@@ -116,6 +118,7 @@ export function SettingsDialog({ tab: initial, gems, tools, status, theme, onThe
             </div>
           )}
           {tab === "gems" && <GemStudio gems={gems} tools={tools} onChanged={onGemsChanged} />}
+          {tab === "plugins" && <Plugins onReloaded={onGemsChanged} />}
           {tab === "harness" && <Harness gems={gems} />}
           {tab === "integrations" && <Integrations status={status} tools={tools} />}
         </div>

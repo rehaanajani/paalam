@@ -201,6 +201,7 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
         call = { id, tool: want.tool, gemId: gem.id, args, ok: out.ok, demo: out.demo, summary: out.summary, data: out.data, ms: Date.now() - started };
         if (want.tool === "geocode" && out.ok && out.data?.lat) ctx.near = { lat: out.data.lat, lng: out.data.lng };
       } catch (e) {
+        if (process.env.PAALAM_DEBUG) console.error(e);
         call = { id, tool: want.tool, gemId: gem.id, args, ok: false, demo: false, summary: `Failed: ${(e as Error).message}`, ms: Date.now() - started };
       }
     }

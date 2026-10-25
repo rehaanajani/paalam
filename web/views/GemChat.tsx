@@ -19,7 +19,7 @@ export function GemChat({ gem, gems, tools, status, threadId, busy, onSend, onCh
             <Gem color={gem.color} size={44} name={gem.id} mood="happy" />
             <div>
               <strong>{gem.name}</strong>
-              <small>{gem.origin === "starter" ? "Starter Gem" : gem.origin === "auto" ? "Built by Argon" : "Your Gem"} · {gem.model === "argon" ? "Argon model" : "fast model"}</small>
+              <small>{gem.origin === "starter" ? "Starter Gem" : gem.origin === "auto" ? "Built by Argon" : gem.origin === "plugin" ? "Plugin Gem" : "Your Gem"} · {gem.model === "argon" ? "Argon model" : "fast model"}</small>
             </div>
           </div>
           <p className="muted small">{gem.purpose}</p>

@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Paalam: a Gemini-powered bridge that turns messy real-world input into structured, verified, life-saving actions.",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,magenta \"tsx watch server/index.ts\" \"vite\"",
     "build": "vite build",
@@ -13,16 +15,17 @@
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
+    "dotenv": "^17.2.3",
     "exifr": "^7.1.3",
     "express": "^5.3.0",
     "google-auth-library": "^10.5.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.61.0",
     "multer": "^2.0.2",
+    "playwright-core": "^1.64.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "tsx": "^4.23.15",
-    "dotenv": "^17.2.3"
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",

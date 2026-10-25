@@ -27,7 +27,7 @@ export interface GemDef {
   model: ModelTier;
   color: string;
   /** "starter" ships with Paalam, "user" was built in Gem Studio, "auto" Argon built it */
-  origin: "starter" | "user" | "auto";
+  origin: "starter" | "user" | "auto" | "plugin";
   knowledge?: string[];
   createdAt: string;
 }
@@ -67,7 +67,9 @@ export type ActionKind =
   | "alert"
   | "readback"
   | "request"
-  | "warn";
+  | "warn"
+  | "browser_fill"
+  | "browser_submit";
 
 export interface ActionCard {
   id: string;
@@ -84,6 +86,8 @@ export interface ActionCard {
   priority: number; // 1 = do first
   status: "awaiting" | "approved" | "declined" | "done" | "failed";
   result?: string;
+  /** screenshot id from the browser, shown on the card */
+  shotId?: string;
   decidedBy?: string;
   decidedAt?: string;
 }

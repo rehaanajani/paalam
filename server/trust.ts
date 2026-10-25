@@ -1,5 +1,6 @@
 import { config } from "./config.js";
 import { redact } from "./tools/redact.js";
+import { checkUrl } from "./browser/net.js";
 import type { GemResult, Run } from "./types.js";
 
 /**
@@ -75,6 +76,23 @@ export async function enforceTrust(r: GemResult, run: Run): Promise<string[]> {
           log.push(`${a.title}: masked ${red.found.join(", ")} before sharing (${red.engine})`);
         }
       }
+    }
+    if (a.kind === "browser_fill") {
+      try {
+        checkUrl(String(p.url));
+      } catch (e) {
+        a.unresolved = [...a.unresolved, `Can't open ${p.url}: ${(e as Error).message}`];
+        log.push(`${a.title}: address refused`);
+      }
+      const steps = Array.isArray(p.steps) ? p.steps : [];
+      const unsafe = /pass(word|code)?|\botp\b|cvv|cvc|card|upi.?pin|\bpin\b|mpin|captcha/i;
+      const kept = steps.filter((st: any) => st && typeof st.field === "string" && !unsafe.test(st.field));
+      if (kept.length < steps.length) {
+        a.unresolved = [...a.unresolved, "Removed fields asking for passwords, OTPs, PINs or card details. Fill those yourself."];
+        log.push(`${a.title}: removed ${steps.length - kept.length} sensitive field(s)`);
+      }
+      p.steps = kept;
+      a.effect = `${a.effect} It stops before submitting; sending needs a second approval.`;
     }
     a.status = "awaiting";
   }

@@ -33,8 +33,18 @@ The layout follows Socius: a sidebar of living faces, a chat in the middle, sett
 
 It installs like an app (PWA) on phones and desktops.
 
+## Browser
+
+Gems can **read a link** (any public page, as text), **open a page** in a real browser to see its form, and **fill a form you approve**. Filling always stops before Submit; submitting is a second approval. Passwords, OTPs, PINs and card details are never filled, and private or local addresses are refused. Try it in the demo: Scam Shield fills a practice complaint form. Set `PAALAM_BROWSER_HEADFUL=1` to watch the window.
+
+## Plugins
+
+Add a tool (`plugins/tools/*.ts`) or a Gem (`plugins/gems/*.json`) without touching the core. See [docs/PLUGINS.md](docs/PLUGINS.md). Two example Gems (Paperwork Helper, Missing Person Search) and one tool (Indian PIN code lookup) ship in `plugins/`.
+
 ## Stack
 
 Node + Express + `@google/genai` · React + Vite · Leaflet (OpenStreetMap) · Google Maps Platform (Places, Routes, Geocoding, Weather, Air Quality) · Cloud DLP · Translation · Text-to-Speech · Safe Browsing · openFDA. Deploys to Cloud Run (`Dockerfile`).
+
+MIT licensed. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The living gem faces are ported from Socius's bot avatars: breathing, blinking, glancing, eyes that follow the cursor and circle while working.

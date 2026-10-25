@@ -85,6 +85,7 @@ export const scenario = {
       toolCalls: [
         { tool: "check_link", argsJson: JSON.stringify({ text: sampleEvidence[3]!.text }), why: "check the link and the ask" },
         { tool: "search_web", argsJson: JSON.stringify({ question: "Is there a Tamil Nadu government ₹5000 flood relief scheme with online Aadhaar registration?" }), why: "does the scheme exist" },
+        { tool: "browse", argsJson: JSON.stringify({ url: `http://localhost:${config.port}/practice/complaint` }), why: "see the complaint form's fields" },
       ],
     },
   },
@@ -250,6 +251,26 @@ export const scenario = {
             priority: 2,
           },
           {
+            kind: "browser_fill" as const,
+            title: "Fill the complaint form (practice)",
+            detail: "Paalam opens the form and fills in what it already knows. It stops before Submit so you can check everything.",
+            effect: "Opens the practice complaint form in a browser and fills 5 fields.",
+            payloadJson: JSON.stringify({
+              url: `http://localhost:${config.port}/practice/complaint`,
+              steps: [
+                { field: "Type of incident", value: "Fake relief or scheme" },
+                { field: "Suspicious link or number", value: "http://tn-gov-relief.online/apply" },
+                { field: "When did you receive it?", value: new Date().toISOString().slice(0, 10) },
+                { field: "What happened?", value: "A WhatsApp forward claiming 'TN Govt Flood Relief ₹5000' asks families to enter Aadhaar and OTP at tn-gov-relief.online. It is not a .gov.in site and no such scheme exists on official sources." },
+                { field: "I confirm the details are true", value: "true" },
+                { field: "OTP sent to your phone", value: "000000" },
+              ],
+            }),
+            evidence: ["E4", id("check_link"), id("browse")],
+            unresolved: ["Your name and mobile number"],
+            priority: 3,
+          },
+          {
             kind: "call" as const,
             title: "Report to cybercrime helpline 1930",
             detail: "Reporting gets the domain taken down faster.",
@@ -257,7 +278,7 @@ export const scenario = {
             payloadJson: JSON.stringify({ number: "1930", script: "Reporting a phishing site tn-gov-relief.online pretending to be Tamil Nadu flood relief, collecting Aadhaar and OTP." }),
             evidence: ["E4"],
             unresolved: [],
-            priority: 3,
+            priority: 4,
           },
         ],
       };

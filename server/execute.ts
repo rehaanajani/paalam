@@ -1,10 +1,14 @@
 import { config, live } from "./config.js";
 import { toolRegistry } from "./tools/index.js";
+import { fillForm, submitForm, type FillStep } from "./browser/index.js";
 import type { ActionCard, Run } from "./types.js";
 
 export interface Execution {
   ok: boolean;
   result: string;
+  shotId?: string;
+  /** a new card this action produced, e.g. "Submit the form" after a fill */
+  followUp?: ActionCard;
   /** what the browser should do next: open a link, dial, copy, play audio */
   client?: { open?: string; tel?: string; copy?: string; audio?: string | null; speak?: { text: string; lang: string } };
 }
@@ -46,5 +50,34 @@ export async function execute(a: ActionCard, run: Run): Promise<Execution> {
     }
     case "warn":
       return { ok: true, result: p.text ?? "Marked" };
+    case "browser_fill": {
+      const steps = (Array.isArray(p.steps) ? p.steps : []) as FillStep[];
+      const r = await fillForm(String(p.url), steps);
+      const host = new URL(r.url).host;
+      const result = `Filled ${r.filled.length} field${r.filled.length === 1 ? "" : "s"} on ${host}. Not submitted.${r.refused.length ? ` Skipped: ${r.refused.join("; ")}.` : ""}${r.visible ? " The browser window is open for you to check." : ""}`;
+      return {
+        ok: r.filled.length > 0,
+        result,
+        shotId: r.shotId,
+        followUp: {
+          id: `${a.id}.submit`,
+          gemId: a.gemId,
+          fragmentId: a.fragmentId,
+          kind: "browser_submit",
+          title: `Submit the form on ${host}`,
+          detail: "Check the filled form in the screenshot above. Submitting sends it to the website.",
+          effect: `Presses the form's submit button on ${host}. This can't be undone.`,
+          payload: { holdId: r.holdId, url: r.url },
+          evidence: a.evidence,
+          unresolved: r.refused.length ? [`Fields Paalam left for you: ${r.refused.map((x) => x.split(":")[0]).join(", ")}`] : [],
+          priority: a.priority,
+          status: "awaiting",
+        },
+      };
+    }
+    case "browser_submit": {
+      const r = await submitForm(String(p.holdId));
+      return { ok: true, result: `Submitted. The site now shows: "${r.title || r.url}".`, shotId: r.shotId };
+    }
   }
 }

@@ -144,9 +144,9 @@ export function GemStudio({ gems, tools, onChanged }: { gems: GemDef[]; tools: T
               <Gem color={g.color} size={56} name={g.id} />
               <div>
                 <h3>{g.name}</h3>
-                <span className={`origin o-${g.origin}`}>{g.origin === "starter" ? "Starter" : g.origin === "auto" ? "Built by Argon" : "Yours"}</span>
+                <span className={`origin o-${g.origin}`}>{g.origin === "starter" ? "Starter" : g.origin === "auto" ? "Built by Argon" : g.origin === "plugin" ? "Plugin" : "Yours"}</span>
               </div>
-              {g.origin !== "starter" && (
+              {(g.origin === "user" || g.origin === "auto") && (
                 <button
                   type="button"
                   className="icon-btn"
