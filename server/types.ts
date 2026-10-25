@@ -1,0 +1,153 @@
+/** Shared shapes for the whole pipeline. The web app imports these too. */
+import type { Usage } from "./harness/index.js";
+export type { Usage };
+
+export type ModelTier = "argon" | "gem";
+
+/** One uploaded file or recording, kept as evidence for the whole run. */
+export interface Evidence {
+  id: string; // "E1", "E2"… cited by facts
+  kind: "text" | "image" | "audio" | "pdf" | "other";
+  name: string;
+  mimeType: string;
+  /** base64; dropped from what the client sees */
+  data?: string;
+  text?: string;
+  capturedAt?: string; // EXIF or recording time
+  gps?: { lat: number; lng: number };
+}
+
+export interface GemDef {
+  id: string;
+  name: string;
+  /** one line the router reads when choosing */
+  purpose: string;
+  instructions: string;
+  tools: string[];
+  model: ModelTier;
+  color: string;
+  /** "starter" ships with Paalam, "user" was built in Gem Studio, "auto" Argon built it */
+  origin: "starter" | "user" | "auto";
+  knowledge?: string[];
+  createdAt: string;
+}
+
+/** A slice of the messy input that belongs to one Gem. */
+export interface Fragment {
+  id: string;
+  gemId: string;
+  title: string;
+  summary: string;
+  evidence: string[];
+  urgency: "critical" | "high" | "medium" | "low";
+  language?: string;
+}
+
+export type FactStatus = "reported" | "inferred" | "unknown";
+export type Verification = "verified" | "unverified" | "conflict" | "pending";
+
+export interface Fact {
+  id: string;
+  field: string;
+  value: string;
+  status: FactStatus;
+  /** evidence ids or tool ids this came from */
+  sources: string[];
+  verification: Verification;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  note?: string;
+}
+
+export type ActionKind =
+  | "navigate"
+  | "call"
+  | "sms"
+  | "share"
+  | "alert"
+  | "readback"
+  | "request"
+  | "warn";
+
+export interface ActionCard {
+  id: string;
+  gemId: string;
+  fragmentId: string;
+  kind: ActionKind;
+  title: string;
+  detail: string;
+  /** what will actually happen on approve, shown verbatim */
+  effect: string;
+  payload: Record<string, unknown>;
+  evidence: string[];
+  unresolved: string[];
+  priority: number; // 1 = do first
+  status: "awaiting" | "approved" | "declined" | "done" | "failed";
+  result?: string;
+  decidedBy?: string;
+  decidedAt?: string;
+}
+
+export interface ToolCall {
+  id: string;
+  tool: string;
+  gemId: string;
+  args: Record<string, any>;
+  ok: boolean;
+  demo: boolean;
+  summary: string;
+  data?: any;
+  ms: number;
+}
+
+export interface MapPin {
+  id: string;
+  lat: number;
+  lng: number;
+  label: string;
+  kind: "incident" | "help" | "route" | "user";
+  gemId?: string;
+}
+
+export interface GemResult {
+  gemId: string;
+  fragmentId: string;
+  summary: string;
+  facts: Fact[];
+  actions: ActionCard[];
+  tools: ToolCall[];
+  pins: MapPin[];
+  route?: { from: [number, number]; to: [number, number]; polyline?: [number, number][]; minutes?: number; km?: number };
+}
+
+export type Stage = "intake" | "split" | "gems" | "verify" | "actions" | "done" | "error";
+
+export interface AuditEntry {
+  at: string;
+  who: string; // "argon", gem id, "you"
+  what: string;
+}
+
+export interface Run {
+  id: string;
+  createdAt: string;
+  stage: Stage;
+  demo: boolean;
+  input: { text: string; evidence: Evidence[]; near?: { lat: number; lng: number } };
+  language?: string;
+  headline?: string;
+  fragments: Fragment[];
+  results: GemResult[];
+  /** set when no Gem fitted and Argon drafted one */
+  proposedGem?: GemDef;
+  audit: AuditEntry[];
+  usage: Usage;
+  error?: string;
+}
+
+export interface RunEvent {
+  type: "stage" | "fragment" | "tool" | "result" | "fact" | "action" | "audit" | "done" | "error";
+  stage?: Stage;
+  gemId?: string;
+  data?: unknown;
+}

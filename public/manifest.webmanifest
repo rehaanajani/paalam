@@ -1,0 +1,12 @@
+{
+  "name": "Paalam: the bridge",
+  "short_name": "Paalam",
+  "description": "Send anything. Get structured, verified, life-saving action.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f1a",
+  "theme_color": "#0d0f1a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
