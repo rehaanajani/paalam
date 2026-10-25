@@ -72,6 +72,8 @@ const tools: ToolDef[] = [
       if (!live.maps) return demo.geocode(address);
       const q = `${address}, ${config.city.name}`;
       const r = await getJSON(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&region=in&key=${config.mapsKey}`);
+      // Geocoding reports key and quota problems inside a 200 response.
+      if (r.status && !["OK", "ZERO_RESULTS"].includes(r.status)) throw new Error(`Geocoding ${r.status}: ${r.error_message ?? "request refused"}`);
       const top = r.results?.[0];
       if (!top) return { ok: false, demo: false, summary: `No match for "${address}"` };
       const { lat, lng } = top.geometry.location;
