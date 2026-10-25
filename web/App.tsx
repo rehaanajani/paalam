@@ -1,55 +1,78 @@
-import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
-import { Cable, Gem as GemIcon, Menu, NotebookPen, Plus, Sparkles, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ChevronRight, KeyRound, PanelLeft, Plus, Search, Settings } from "lucide-react";
 import { api } from "./api";
 import { Gem } from "./components/Gem";
-import { Constellation } from "./components/Constellation";
-import { Composer } from "./components/Composer";
-import { RunView } from "./views/RunView";
-import { GemStudio } from "./views/GemStudio";
-import { Harness } from "./views/Harness";
-import { Integrations } from "./views/Integrations";
+import { GroupGem } from "./components/GroupGem";
+import { Palette } from "./components/Palette";
+import { ArgonHome } from "./views/ArgonHome";
+import { GemChat } from "./views/GemChat";
+import { Thread, gemStyle } from "./views/Thread";
+import { SettingsDialog, type SettingsTab } from "./views/Settings";
+import { applyTheme, loadTheme, type Theme } from "./theme";
 import type { GemDef, Status, ToolInfo } from "./types";
 
-type Route = { view: "home" } | { view: "run"; id: string } | { view: "gems" } | { view: "harness" } | { view: "integrations" };
-type RunRow = { id: string; createdAt: string; headline?: string; stage: string; demo: boolean };
+type Route = { view: "argon" } | { view: "bridge"; id: string } | { view: "gem"; id: string };
+type ThreadRow = { id: string; title: string; target: string | null; gems: string[]; updatedAt: string; runs: number; working: boolean; awaiting: number; demo: boolean };
 
 function parse(hash: string): Route {
   const [, view, id] = hash.replace(/^#/, "").split("/");
-  if (view === "run" && id) return { view: "run", id };
-  if (view === "gems" || view === "harness" || view === "integrations") return { view };
-  return { view: "home" };
+  if (view === "bridge" && id) return { view: "bridge", id };
+  if (view === "gem" && id) return { view: "gem", id };
+  return { view: "argon" };
 }
 const go = (path: string) => (location.hash = path);
+const narrow = () => matchMedia("(max-width: 760px)").matches;
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parse(location.hash));
   const [gems, setGems] = useState<GemDef[]>([]);
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
-  const [runs, setRuns] = useState<RunRow[]>([]);
+  const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [nav, setNav] = useState(false);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(narrow);
+  const [palette, setPalette] = useState(false);
+  const [settings, setSettings] = useState<SettingsTab | null>(null);
+  const [folded, setFolded] = useState<Set<string>>(new Set());
+  const [fresh, setFresh] = useState<Set<string>>(new Set()); // Gem tabs showing a new conversation
+  const [theme, setTheme] = useState<Theme>(loadTheme);
 
   const loadGems = () => api<GemDef[]>("gems").then(setGems);
-  const loadRuns = () => api<RunRow[]>("runs").then(setRuns);
+  const loadThreads = () => api<ThreadRow[]>("threads").then(setThreads);
   useEffect(() => {
+    applyTheme(theme);
     const on = () => {
       setRoute(parse(location.hash));
-      setNav(false);
-      document.querySelector("main")?.scrollTo({ top: 0 });
+      if (narrow()) setCollapsed(true);
     };
     addEventListener("hashchange", on);
+    const keys = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === "k" || e.key === "n") {
+        e.preventDefault();
+        setPalette(true);
+      }
+      if (e.key === "\\") {
+        e.preventDefault();
+        setCollapsed((c) => !c);
+      }
+    };
+    addEventListener("keydown", keys);
     void loadGems();
-    void loadRuns();
+    void loadThreads();
     api<ToolInfo[]>("tools").then(setTools);
     api<Status>("status").then(setStatus);
-    return () => removeEventListener("hashchange", on);
+    const poll = setInterval(loadThreads, 4000);
+    return () => {
+      removeEventListener("hashchange", on);
+      removeEventListener("keydown", keys);
+      clearInterval(poll);
+    };
   }, []);
 
-  async function send(text: string, files: File[], near?: { lat: number; lng: number }) {
+  /** Sends into Argon (new Bridge), an existing Bridge, or straight to one Gem. */
+  async function send(text: string, files: File[], near: { lat: number; lng: number } | undefined, to: { threadId?: string; gemId?: string } = {}) {
     setBusy(true);
     setErr("");
     try {
@@ -60,9 +83,12 @@ export function App() {
         form.set("lat", String(near.lat));
         form.set("lng", String(near.lng));
       }
-      const { id } = await api<{ id: string }>("runs", { method: "POST", body: form });
-      go(`/run/${id}`);
-      setTimeout(loadRuns, 1500);
+      if (to.threadId) form.set("threadId", to.threadId);
+      if (to.gemId) form.set("gemId", to.gemId);
+      const r = await api<{ id: string; threadId: string }>("runs", { method: "POST", body: form });
+      if (to.gemId) setFresh((f) => new Set([...f].filter((x) => x !== to.gemId)));
+      else if (!to.threadId) go(`/bridge/${r.threadId}`);
+      await loadThreads();
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -73,133 +99,200 @@ export function App() {
   async function sample() {
     setBusy(true);
     try {
-      const { id } = await api<{ id: string }>("runs/sample", { method: "POST" });
-      go(`/run/${id}`);
-      setTimeout(loadRuns, 1500);
+      const r = await api<{ threadId: string }>("runs/sample", { json: {} });
+      go(`/bridge/${r.threadId}`);
+      await loadThreads();
     } finally {
       setBusy(false);
     }
   }
 
-  const pickedGem = gems.find((g) => g.id === picked);
+  const gemOf = (id: string) => gems.find((g) => g.id === id);
+  const bridges = threads.filter((t) => !t.target);
+  const gemWorking = (id: string) => threads.some((t) => t.working && t.gems.includes(id));
+  const gemThread = (id: string) => (fresh.has(id) ? null : (threads.find((t) => t.target === id)?.id ?? null));
+  const argonWorking = threads.some((t) => t.working);
+  const toggle = (k: string) => setFolded((f) => new Set(f.has(k) ? [...f].filter((x) => x !== k) : [...f, k]));
+  const heading = (k: string, label: string, count: number) => (
+    <h3>
+      <button className="section-toggle" aria-expanded={!folded.has(k)} onClick={() => toggle(k)}>
+        {label}
+        {folded.has(k) && count > 0 && <span className="section-count">{count}</span>}
+        <ChevronRight size={12} />
+      </button>
+    </h3>
+  );
+  const ago = (iso: string) => {
+    const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  const live = status?.integrations.filter((i) => i.live).length ?? 0;
+  const tip = (label: string, el: ReactNode) => <span title={label}>{el}</span>;
+
+  let page: ReactNode;
+  if (route.view === "bridge") {
+    const t = threads.find((x) => x.id === route.id);
+    const involved = (t?.gems ?? []).map(gemOf).filter((g): g is GemDef => !!g);
+    page = (
+      <Thread
+        key={route.id}
+        threadId={route.id}
+        gems={gems}
+        status={status}
+        placeholder="Add more: another photo, an update, a correction…"
+        pill={
+          <span className="bot-pill">
+            <GroupGem gems={involved} size={28} busy={t?.working} />
+            <span className="pill-title">{t?.title ?? "Bridge"}</span>
+          </span>
+        }
+        onSend={(text, files, near) => send(text, files, near, { threadId: route.id })}
+        onChanged={loadThreads}
+        onNew={() => go("/")}
+      />
+    );
+  } else if (route.view === "gem" && gemOf(route.id)) {
+    const g = gemOf(route.id)!;
+    const tid = gemThread(g.id);
+    page = (
+      <GemChat
+        key={`${g.id}:${tid}`}
+        gem={g}
+        gems={gems}
+        tools={tools}
+        status={status}
+        threadId={tid}
+        busy={busy}
+        onSend={(text, files, near) => send(text, files, near, { gemId: g.id, ...(tid ? { threadId: tid } : {}) })}
+        onChanged={loadThreads}
+        onNew={() => setFresh((f) => new Set([...f, g.id]))}
+        onEdit={() => setSettings("gems")}
+      />
+    );
+  } else {
+    page = <ArgonHome gems={gems} status={status} busy={busy} onSend={(t, f, n) => send(t, f, n)} onSample={sample} onOpenGem={(id) => go(`/gem/${id}`)} />;
+  }
 
   return (
-    <div className={`app ${nav ? "nav-open" : ""}`}>
-      <aside className="sidebar">
-        <div className="brand" onClick={() => go("/")}>
-          <Gem argon size={34} name="brand" />
-          <div>
-            <b>Paalam</b>
-            <span>பாலம் · the bridge</span>
+    <div className={`shell ${collapsed ? "collapsed" : ""}`}>
+      <div className="drawer-backdrop" aria-hidden="true" onClick={() => setCollapsed(true)} />
+      <aside className="sidebar" aria-label="Argon, bridges and Gems" inert={collapsed}>
+        <div className="sidebar-top">
+          <div className="window-tools">
+            {tip(
+              "Hide sidebar  ⌘\\",
+              <button className="icon ghost" aria-label="Hide sidebar" onClick={() => setCollapsed(true)}>
+                <PanelLeft size={17} />
+              </button>,
+            )}
+            {tip(
+              "Search  ⌘K",
+              <button className="icon round" aria-label="Search" onClick={() => setPalette(true)}>
+                <Search size={17} />
+              </button>,
+            )}
+            {tip(
+              "New bridge or Gem  ⌘N",
+              <button className="icon round" aria-label="Create" onClick={() => setPalette(true)}>
+                <Plus size={19} />
+              </button>,
+            )}
           </div>
-          <button type="button" className="icon-btn close-nav" onClick={() => setNav(false)} aria-label="Close menu">
-            <X size={18} />
+        </div>
+        <div className="sidebar-scroll">
+          <div className="featured">
+            <button className={`featured-bot ${route.view === "argon" ? "active" : ""}`} onClick={() => go("/")}>
+              <Gem argon size={66} name="argon-featured" mood={argonWorking ? "busy" : "idle"} />
+              <span>Argon</span>
+              <small>Orchestrator</small>
+              {argonWorking && <span className="review-dot pulse" aria-label="Working" />}
+            </button>
+          </div>
+
+          <section className="bot-group" aria-label="Bridges">
+            {heading("bridges", "Bridges", bridges.length)}
+            {!folded.has("bridges") && !bridges.length && <small className="bots-empty">Message Argon to start one.</small>}
+            {!folded.has("bridges") &&
+              bridges.map((t) => (
+                <button key={t.id} className={`bot-row ${route.view === "bridge" && route.id === t.id ? "active" : ""}`} onClick={() => go(`/bridge/${t.id}`)}>
+                  <GroupGem gems={t.gems.map(gemOf).filter((g): g is GemDef => !!g)} size={34} busy={t.working} />
+                  <span className="bot-text">
+                    <strong>{t.title}</strong>
+                    <small>{t.working ? "Working…" : t.awaiting ? `${t.awaiting} action${t.awaiting > 1 ? "s" : ""} waiting` : `${ago(t.updatedAt)}${t.demo ? " · demo" : ""}`}</small>
+                  </span>
+                  {(t.working || t.awaiting > 0) && <span className={`unread ${t.working ? "pulse" : ""}`} aria-label={t.working ? "Working" : "Needs review"} />}
+                </button>
+              ))}
+          </section>
+
+          <section className="bot-group" aria-label="Gems">
+            {heading("gems", "Gems", gems.length)}
+            {!folded.has("gems") &&
+              gems.map((g) => {
+                const working = gemWorking(g.id);
+                const t = threads.find((x) => x.target === g.id);
+                return (
+                  <button key={g.id} className={`bot-row ${route.view === "gem" && route.id === g.id ? "active" : ""}`} style={gemStyle(g)} onClick={() => go(`/gem/${g.id}`)}>
+                    <Gem color={g.color} size={34} name={g.id} mood={working ? "busy" : "idle"} />
+                    <span className="bot-text">
+                      <strong>{g.name}</strong>
+                      <small>{working ? "Working…" : g.purpose.split(/[,.]/)[0]}</small>
+                    </span>
+                    {(working || (t?.awaiting ?? 0) > 0) && <span className={`unread ${working ? "pulse" : ""}`} />}
+                  </button>
+                );
+              })}
+            {!folded.has("gems") && (
+              <button className="bot-row add-row" onClick={() => setSettings("gems")}>
+                <span className="add-gem">
+                  <Plus size={16} />
+                </span>
+                <span className="bot-text">
+                  <strong>Create a Gem</strong>
+                  <small>Describe it, Argon designs it</small>
+                </span>
+              </button>
+            )}
+          </section>
+        </div>
+        <div className="sidebar-bottom">
+          <button className="account-button" aria-label="Settings" title="Settings" onClick={() => setSettings("general")}>
+            <Settings size={16} />
           </button>
-        </div>
-        <button type="button" className="new-run" onClick={() => go("/")}>
-          <Plus size={16} /> New bridge
-        </button>
-        <nav>
-          <a className={route.view === "gems" ? "on" : ""} href="#/gems">
-            <GemIcon size={16} /> Gem Studio <span className="count">{gems.length}</span>
-          </a>
-          <a className={route.view === "harness" ? "on" : ""} href="#/harness">
-            <NotebookPen size={16} /> Harness
-          </a>
-          <a className={route.view === "integrations" ? "on" : ""} href="#/integrations">
-            <Cable size={16} /> Integrations
-          </a>
-        </nav>
-        <div className="side-gems">
-          {gems.map((g) => (
-            <span key={g.id} title={g.name} onClick={() => go("/gems")}>
-              <Gem color={g.color} size={26} name={g.id} />
+          <button className="connect-apps" onClick={() => setSettings("integrations")}>
+            <span className="keys-label">
+              <KeyRound size={15} /> Connect keys
             </span>
-          ))}
-        </div>
-        <div className="recent">
-          <h4>Recent</h4>
-          {runs.length === 0 && <p className="muted small">Nothing yet</p>}
-          {runs.map((r) => (
-            <a key={r.id} href={`#/run/${r.id}`} className={route.view === "run" && route.id === r.id ? "on" : ""}>
-              <span className="recent-title">{r.headline ?? "Untitled"}</span>
-              <span className="recent-meta">
-                {new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                {r.demo && " · demo"}
-              </span>
-            </a>
-          ))}
-        </div>
-        <div className={`mode ${status?.demo ? "demo" : "live"}`}>
-          <i />
-          {status ? (status.demo ? "Demo mode: add keys in Integrations" : `Live · ${status.integrations.filter((i) => i.live).length}/${status.integrations.length} integrations`) : "…"}
+            <span className={`key-status ${status?.demo ? "demo" : "live"}`}>{status ? (status.demo ? "Demo" : `${live}/${status.integrations.length} live`) : "…"}</span>
+          </button>
         </div>
       </aside>
 
       <main>
-        <header className="topbar">
-          <button type="button" className="icon-btn" onClick={() => setNav(true)} aria-label="Menu">
-            <Menu size={20} />
-          </button>
-          <span className="brand-mini" onClick={() => go("/")}>
-            <Gem argon size={24} name="brand-m" /> Paalam
-          </span>
-        </header>
-
-        {route.view === "home" && (
-          <div className="home">
-            <div className="hero">
-              <Constellation gems={gems} size={Math.max(240, Math.min(440, window.innerWidth - 40))} onPick={(id) => setPicked(id === picked ? null : id)} active={picked ? [picked] : []} />
-              <div className="hero-copy">
-                <h1>
-                  Send anything.
-                  <br />
-                  <span className="grad">Get verified action.</span>
-                </h1>
-                <p>Voice notes, photos, forwarded messages, a stack of prescriptions, in any language, all at once. Argon splits the chaos, the right Gems check every claim with Google's tools, and you approve what happens.</p>
-                {pickedGem && (
-                  <div className="picked" style={{ "--gem": pickedGem.color } as CSSProperties}>
-                    <b>{pickedGem.name}</b> {pickedGem.purpose}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="home-composer">
-              <Composer busy={busy} onSend={send} />
-              {err && <div className="err">{err}</div>}
-              <div className="try">
-                <button type="button" className="try-btn" onClick={sample} disabled={busy}>
-                  <Sparkles size={15} /> Try it: a Chennai family's flood-night WhatsApp
-                </button>
-                <span className="muted small">Flood + insulin without power + a relief scam, all in one chat</span>
-              </div>
-            </div>
-            <ol className="flow">
-              <li>
-                <b>Messy in</b>
-                <span>voice · photo · PDF · forwards</span>
-              </li>
-              <li>
-                <b>Split</b>
-                <span>Argon finds every problem</span>
-              </li>
-              <li>
-                <b>Verify</b>
-                <span>tools back every claim</span>
-              </li>
-              <li>
-                <b>Act</b>
-                <span>you approve each action</span>
-              </li>
-            </ol>
+        <button className="sidebar-reveal icon ghost" aria-label="Show sidebar" tabIndex={collapsed ? 0 : -1} aria-hidden={!collapsed} onClick={() => setCollapsed(false)} title="Show sidebar  ⌘\">
+          <PanelLeft size={17} />
+        </button>
+        {err && (
+          <div className="error-toast" onClick={() => setErr("")}>
+            {err}
           </div>
         )}
-        {route.view === "run" && <RunView key={route.id} runId={route.id} gems={gems} status={status} onGemsChanged={loadGems} onDone={loadRuns} />}
-        {route.view === "gems" && <GemStudio gems={gems} tools={tools} onChanged={loadGems} />}
-        {route.view === "harness" && <Harness gems={gems} />}
-        {route.view === "integrations" && <Integrations status={status} tools={tools} />}
+        {page}
       </main>
-      <div className="scrim" onClick={() => setNav(false)} />
+
+      {palette && (
+        <Palette
+          gems={gems}
+          threads={bridges}
+          onClose={() => setPalette(false)}
+          onArgon={() => go("/")}
+          onGem={(id) => go(`/gem/${id}`)}
+          onThread={(id) => go(`/bridge/${id}`)}
+          onCreateGem={() => setSettings("gems")}
+          onSettings={() => setSettings("general")}
+        />
+      )}
+      {settings && <SettingsDialog tab={settings} gems={gems} tools={tools} status={status} theme={theme} onTheme={setTheme} onGemsChanged={loadGems} onClose={() => setSettings(null)} />}
     </div>
   );
 }

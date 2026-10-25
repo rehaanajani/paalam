@@ -87,11 +87,13 @@ app.delete("/api/harness/notes", (_req, res) => {
 app.post("/api/runs", upload.array("files"), (req, res) => {
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   const text = String(req.body?.text ?? "").slice(0, 8000);
+  const threadId = String(req.body?.threadId ?? "") || undefined;
+  const target = String(req.body?.gemId ?? "") || undefined;
   if (!live.gemini) {
     // Without Gemini only the scripted scenario can run; say so in the trail.
-    const run = newRun(sampleText, structuredClone(sampleEvidence), true);
+    const run = newRun(sampleText, structuredClone(sampleEvidence), true, { threadId, target });
     run.audit.push({ at: new Date().toISOString(), who: "harness", what: "Demo mode: no Gemini key yet, so the built-in Chennai scenario is shown instead of your input." });
-    return res.json({ id: start(run) });
+    return res.json({ id: start(run), threadId: run.threadId });
   }
   const evidence: Evidence[] = files.map((f, i) => {
     const kind = kindOf(f.mimetype);
@@ -102,11 +104,43 @@ app.post("/api/runs", upload.array("files"), (req, res) => {
   if (!text && !evidence.length) return res.status(400).json({ error: "Send a message, a recording or a file." });
   const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
   const near = Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng) ? { lat, lng } : undefined;
-  res.json({ id: start(newRun(near ? `${text}\n(Device location: ${lat.toFixed(5)}, ${lng.toFixed(5)})` : text, evidence, false, near)) });
+  const run = newRun(near ? `${text}\n(Device location: ${lat.toFixed(5)}, ${lng.toFixed(5)})` : text, evidence, false, { near, threadId, target });
+  res.json({ id: start(run), threadId: run.threadId });
 });
 
-app.post("/api/runs/sample", (_req, res) => {
-  res.json({ id: start(newRun(sampleText, structuredClone(sampleEvidence), !live.gemini)) });
+app.post("/api/runs/sample", (req, res) => {
+  const run = newRun(sampleText, structuredClone(sampleEvidence), !live.gemini, { threadId: req.body?.threadId, target: req.body?.gemId });
+  res.json({ id: start(run), threadId: run.threadId });
+});
+
+// A Bridge is a conversation: every run sent into it, oldest first.
+app.get("/api/threads", (_req, res) => {
+  const byThread = new Map<string, Run[]>();
+  for (const r of runs.values()) byThread.set(r.threadId, [...(byThread.get(r.threadId) ?? []), r]);
+  res.json(
+    [...byThread.entries()]
+      .map(([id, list]) => {
+        const last = list[list.length - 1]!;
+        return {
+          id,
+          title: list[0]!.headline ?? "Reading…",
+          target: list[0]!.target ?? null,
+          gems: [...new Set(list.flatMap((r) => r.fragments.map((f) => f.gemId)))],
+          updatedAt: last.createdAt,
+          runs: list.length,
+          working: list.some((r) => !["done", "error"].includes(r.stage)),
+          awaiting: list.reduce((n, r) => n + r.results.reduce((m, x) => m + x.actions.filter((a) => a.status === "awaiting").length, 0), 0),
+          demo: last.demo,
+        };
+      })
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 40),
+  );
+});
+
+app.get("/api/threads/:id", (req, res) => {
+  const list = [...runs.values()].filter((r) => r.threadId === req.params.id);
+  list.length ? res.json(list.map(publicRun)) : res.status(404).json({ error: "No such bridge" });
 });
 
 app.get("/api/runs", (_req, res) => {

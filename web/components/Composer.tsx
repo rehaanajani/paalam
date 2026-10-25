@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, FileText, Image as ImageIcon, LocateFixed, Mic, Paperclip, Square, X, Music } from "lucide-react";
+import { ArrowUp, FileText, Image as ImageIcon, LocateFixed, Mic, Plus, Square, X, Music } from "lucide-react";
 import { startRecording } from "../api";
 
 type Recording = Awaited<ReturnType<typeof startRecording>>;
@@ -82,7 +82,7 @@ export function Composer({ busy, onSend, placeholder }: { busy: boolean; onSend:
 
   return (
     <div
-      className={`composer ${drag ? "drag" : ""}`}
+      className={`composer ${drag ? "drag" : ""} ${rec ? "listening" : ""}`}
       onDragOver={(e) => {
         e.preventDefault();
         setDrag(true);
@@ -123,20 +123,20 @@ export function Composer({ busy, onSend, placeholder }: { busy: boolean; onSend:
         placeholder={rec ? "Listening…" : (placeholder ?? "Paste the messy message, describe what's happening, or drop photos and documents…")}
         disabled={busy}
       />
-      <div className="composer-bar">
+      <div className="composer-tools">
         <input ref={input} type="file" multiple hidden accept="image/*,audio/*,application/pdf,text/plain" onChange={(e) => add(e.target.files)} />
-        <button type="button" className="icon-btn" title="Attach photos, documents or audio" onClick={() => input.current?.click()} disabled={busy}>
-          <Paperclip size={18} />
+        <button type="button" className="composer-plus" title="Add photos, documents or audio" onClick={() => input.current?.click()} disabled={busy}>
+          <Plus size={18} />
         </button>
-        <button type="button" className={`icon-btn ${rec ? "recording" : ""}`} title={rec ? "Stop recording" : "Record a voice note"} onClick={toggleMic} disabled={busy}>
-          {rec ? <Square size={16} fill="currentColor" /> : <Mic size={18} />}
-          {rec && <span className="rec-time">{secs}s</span>}
-        </button>
-        <button type="button" className={`icon-btn ${near ? "on" : ""}`} title="Share my location" onClick={locate} disabled={busy || locating}>
-          <LocateFixed size={18} />
+        <button type="button" className={`composer-mic ${near ? "on-loc" : ""}`} title="Share my location" onClick={locate} disabled={busy || locating}>
+          <LocateFixed size={17} />
         </button>
         {err && <span className="composer-err">{err}</span>}
         <span className="grow" />
+        <button type="button" className={`composer-mic ${rec ? "on" : ""}`} title={rec ? "Stop recording" : "Record a voice note"} onClick={toggleMic} disabled={busy}>
+          {rec ? <Square size={14} fill="currentColor" /> : <Mic size={17} />}
+        </button>
+        {rec && <span className="rec-time">{secs}s</span>}
         <button type="button" className="send" onClick={send} disabled={busy || !!rec || (!text.trim() && !files.length)} aria-label="Send to Paalam">
           <ArrowUp size={18} />
         </button>

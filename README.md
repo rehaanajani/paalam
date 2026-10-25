@@ -21,13 +21,15 @@ For development with hot reload: `npm run dev` (web on :5173, API on :8080).
 
 ## What's where
 
-| Screen | What it shows |
+The layout follows Socius: a sidebar of living faces, a chat in the middle, settings in a floating dialog.
+
+| Where | What it is |
 |---|---|
-| **Home** | Argon and the Gems in orbit; the composer takes text, voice, photos, PDFs and your location |
-| **Run** | Live pipeline · what came in · each Gem's facts with verification badges and sources · map · approval queue · audit trail · token usage |
-| **Gem Studio** | Describe a Gem and Argon designs it; tick its tools; save |
-| **Harness** | Playbooks, token budget, and the rules models have written for themselves |
-| **Integrations** | Which keys are live, exactly which env var turns each one on |
+| **Argon** (featured at the top of the sidebar) | The orchestrator. Send it anything (text, voice, photos, PDFs, your location) and it starts a new Bridge |
+| **Bridges** | Your conversations. Each one reads you → Argon → each Gem's findings, with verification badges and sources → action cards to approve → map and audit trail. Add more to the same Bridge from its composer |
+| **Gems** | Every specialist has its own chat. Messages there go straight to that Gem, skipping Argon's split |
+| **+ / ⌘K** | Jump to Argon, a Gem or a Bridge, or create a Gem |
+| **Settings** (bottom left) | General (theme, region), Gems (Gem Studio: describe one and Argon designs it), Harness (playbooks, token budget, self-written notes), Keys (which integrations are live) |
 
 It installs like an app (PWA) on phones and desktops.
 

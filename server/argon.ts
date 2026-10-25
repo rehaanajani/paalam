@@ -34,8 +34,13 @@ const parseArgs = (s: string) => {
   }
 };
 
-export const newRun = (text: string, evidence: Run["input"]["evidence"], demo: boolean, near?: { lat: number; lng: number }): Run => ({
-  id: randomUUID().slice(0, 8),
+export function newRun(text: string, evidence: Run["input"]["evidence"], demo: boolean, opts: { near?: { lat: number; lng: number }; threadId?: string; target?: string } = {}): Run {
+  const id = randomUUID().slice(0, 8);
+  const { near, threadId, target } = opts;
+  return {
+  id,
+  threadId: threadId || id,
+  ...(target ? { target } : {}),
   createdAt: now(),
   stage: "intake",
   demo,
@@ -44,7 +49,8 @@ export const newRun = (text: string, evidence: Run["input"]["evidence"], demo: b
   results: [],
   audit: [],
   usage: newUsage(),
-});
+  };
+}
 
 /** Runs the whole bridge for one intake. Streams progress through `emit`. */
 export async function runBridge(run: Run, emit: Emit) {
@@ -70,7 +76,17 @@ export async function runBridge(run: Run, emit: Emit) {
     stage("split");
     const hasMedia = run.input.evidence.some((e) => e.data);
     const routerTier: ModelTier = !hasMedia && run.input.text.length < budget.downshiftChars ? "gem" : "argon";
-    const split: SplitOut = run.demo
+    const direct = run.target ? gems.get(run.target) : undefined;
+    const split: SplitOut = direct
+      ? run.demo
+        ? { ...structuredClone(scenario.split), fragments: scenario.split.fragments.filter((f) => f.gemId === direct.id) }
+        : {
+            headline: `${direct.name}: ${(run.input.text.split("\n")[0] || run.input.evidence[0]?.name || "direct request").slice(0, 90)}`,
+            language: "",
+            locationHint: "",
+            fragments: [{ gemId: direct.id, title: (run.input.text.split("\n")[0] || "Direct request").slice(0, 70), summary: run.input.text.slice(0, 400), evidence: run.input.evidence.map((e) => e.id), urgency: "high" }],
+          }
+      : run.demo
       ? structuredClone(scenario.split)
       : await askJSON<SplitOut>({
           tier: routerTier,
@@ -85,7 +101,11 @@ export async function runBridge(run: Run, emit: Emit) {
             .join("\n")}\n\nTools a new Gem may use: ${[...toolRegistry.keys()].join(", ")}\n\nMessage from the person:\n"""${run.input.text || "(no text, see evidence)"}"""`,
         });
     await pace(900);
-    if (routerTier === "gem" && !run.demo) audit("harness", "Short text-only input, so it was routed by the fast model to save tokens");
+    if (direct) {
+      if (!split.fragments.length) throw new Error(`Demo mode only has scripted answers for Flood Rescue, Health Guard and Scam Shield. Add GEMINI_API_KEY to talk to ${direct.name}.`);
+      if (direct && run.demo) split.headline = `${direct.name}: ${split.fragments[0]!.title}`;
+      audit("argon", `You messaged ${direct.name} directly, so I skipped the split`);
+    } else if (routerTier === "gem" && !run.demo) audit("harness", "Short text-only input, so it was routed by the fast model to save tokens");
     run.headline = split.headline;
     run.language = split.language;
     const argonNote = addNote("argon", split.harnessNote, run.id);

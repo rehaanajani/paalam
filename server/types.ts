@@ -130,6 +130,10 @@ export interface AuditEntry {
 
 export interface Run {
   id: string;
+  /** a Bridge: the conversation this run belongs to */
+  threadId: string;
+  /** set when the person messaged one Gem directly, skipping Argon's split */
+  target?: string;
   createdAt: string;
   stage: Stage;
   demo: boolean;
