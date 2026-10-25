@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "no
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { GemDef } from "../types.js";
+import { DATA_DIR } from "../paths.js";
 
 /**
  * The harness: the playbooks every model call starts from, the token budget it
@@ -13,7 +14,7 @@ import type { GemDef } from "../types.js";
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const NOTES_FILE = join(process.cwd(), "data", "harness-notes.json");
+const NOTES_FILE = join(DATA_DIR, "harness-notes.json");
 const MAX_NOTES = 8;
 const MAX_NOTE_CHARS = 200;
 

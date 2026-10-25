@@ -4,6 +4,7 @@ import { basename, dirname, join } from "node:path";
 import { live } from "./config.js";
 import { embed } from "./gemini.js";
 import { cosine, overlap } from "./vectors.js";
+import { DATA_DIR } from "./paths.js";
 
 /**
  * The knowledge base Gems cite: Markdown or text files in knowledge/ (and
@@ -21,7 +22,7 @@ interface Chunk {
 }
 
 const DIRS = [join(process.cwd(), "knowledge"), join(process.cwd(), "plugins", "knowledge")];
-const CACHE = join(process.cwd(), "data", "knowledge-vectors.json");
+const CACHE = join(DATA_DIR, "knowledge-vectors.json");
 let chunks: Chunk[] = [];
 let embedded = false;
 let indexing: Promise<void> | null = null;

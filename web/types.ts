@@ -13,6 +13,7 @@ export interface Integration {
 
 export interface Status {
   demo: boolean;
+  envFile?: string;
   integrations: Integration[];
   city: { name: string; lat: number; lng: number };
   numbers: { emergency: string; ambulance: string; disaster: string };

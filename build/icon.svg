@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8df7"/><stop offset=".45" stop-color="#8f6fe0"/><stop offset=".8" stop-color="#d96f9a"/><stop offset="1" stop-color="#f2a65a"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#8f6fe0" stop-opacity=".45"/><stop offset="1" stop-color="#8f6fe0" stop-opacity="0"/></radialGradient>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1d2e"/><stop offset="1" stop-color="#0b0d17"/></linearGradient>
+</defs>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+<circle cx="512" cy="512" r="330" fill="url(#glow)"/>
+<g transform="translate(212 212) scale(6)">
+<path d="M50 3C53 29 71 47 97 50C71 53 53 71 50 97C47 71 29 53 3 50C29 47 47 29 50 3Z" fill="url(#g)"/>
+<path d="M50 3C47 29 29 47 3 50L50 50Z" fill="#fff" opacity=".28"/>
+<path d="M50 3C53 29 71 47 97 50L50 50Z" fill="#fff" opacity=".12"/>
+<path d="M50 97C53 71 71 53 97 50L50 50Z" fill="#1b0f3a" opacity=".14"/>
+<ellipse cx="41" cy="47" rx="4.2" ry="5.4" fill="#0e1330"/><ellipse cx="59" cy="47" rx="4.2" ry="5.4" fill="#0e1330"/>
+<circle cx="42.4" cy="45" r="1.5" fill="#fff"/><circle cx="60.4" cy="45" r="1.5" fill="#fff"/>
+<path d="M44.5 60Q50 63.5 55.5 60" fill="none" stroke="#0e1330" stroke-width="2.6" stroke-linecap="round"/>
+<ellipse cx="33" cy="56" rx="4" ry="2.4" fill="#ff7aa8" opacity=".28"/><ellipse cx="67" cy="56" rx="4" ry="2.4" fill="#ff7aa8" opacity=".28"/>
+</g>
+</svg>

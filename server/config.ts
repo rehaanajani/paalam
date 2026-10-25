@@ -1,4 +1,8 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import { join } from "node:path";
+
+// Keys come from .env in the project, or from the file the desktop app points at.
+dotenv.config({ path: process.env.PAALAM_ENV_FILE || join(process.cwd(), ".env"), quiet: true });
 
 const env = (k: string) => (process.env[k] ?? "").trim();
 

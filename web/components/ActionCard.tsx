@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { useState, type KeyboardEvent } from "react";
-import { AlertTriangle, BellRing, Check, Globe, Image as ImageIcon, MessageSquare, MousePointerClick, Navigation, Phone, Send, Share2, ShieldAlert, Volume2, X } from "lucide-react";
+import { AlertTriangle, BellRing, Check, Download, Globe, Image as ImageIcon, MessageSquare, MousePointerClick, Navigation, Phone, Send, Share2, ShieldAlert, Volume2, X } from "lucide-react";
 import { api, runClient } from "../api";
 import { Gem } from "./Gem";
 import type { ActionCard as Card, GemDef, ToolCall } from "../types";
@@ -105,11 +105,33 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
           {card.status === "declined" ? "Skipped" : card.result}
         </div>
       )}
-      {card.shotId && (
+      {card.shotId && card.kind === "poster" ? (
+        <div className="poster">
+          <img src={`/api/shots/${card.shotId}`} alt={card.title} />
+          <div className="poster-actions">
+            <a className="ghost small-btn" href={`/api/shots/${card.shotId}`} download={`paalam-poster-${card.shotId}`}>
+              <Download size={13} /> Download
+            </a>
+            {"share" in navigator && (
+              <button
+                type="button"
+                className="ghost small-btn"
+                onClick={async () => {
+                  const blob = await fetch(`/api/shots/${card.shotId}`).then((r) => r.blob());
+                  const file = new File([blob], `paalam-poster.${blob.type.includes("svg") ? "svg" : blob.type.split("/")[1] ?? "png"}`, { type: blob.type });
+                  await navigator.share({ files: [file], title: card.title }).catch(() => {});
+                }}
+              >
+                <Share2 size={13} /> Share
+              </button>
+            )}
+          </div>
+        </div>
+      ) : card.shotId ? (
         <a className="shot" href={`/api/shots/${card.shotId}`} target="_blank" rel="noreferrer" title="Open the full screenshot">
           <img src={`/api/shots/${card.shotId}`} alt={`Screenshot after: ${card.title}`} loading="lazy" />
         </a>
-      )}
+      ) : null}
       {err && <div className="err">{err}</div>}
     </div>
   );

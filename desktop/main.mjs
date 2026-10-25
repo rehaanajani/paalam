@@ -44,9 +44,13 @@ async function startServer() {
   const log = logFile();
   appendFileSync(log, `\n--- ${new Date().toISOString()} starting on ${port}\n`);
   // Electron doubles as Node here (ELECTRON_RUN_AS_NODE), so no separate Node install is needed.
+  // The installed app keeps keys and data in its user-data folder, never inside the app bundle,
+  // so the app can be shared without leaking keys. Running from the repo uses the project's .env and data/.
+  const userData = app.getPath("userData");
+  const where = app.isPackaged ? { PAALAM_ENV_FILE: join(userData, ".env"), PAALAM_DATA_DIR: join(userData, "data") } : {};
   server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], {
     cwd: root,
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", NODE_ENV: "production", PORT: String(port) },
+    env: { ...process.env, ...where, ELECTRON_RUN_AS_NODE: "1", NODE_ENV: "production", PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
   });
   for (const stream of [server.stdout, server.stderr]) stream.on("data", (d) => appendFileSync(log, d));

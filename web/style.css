@@ -1922,9 +1922,15 @@ button.bot-pill:hover {
 .action-card:focus-visible {
   outline: 2px solid var(--gem);
 }
-.action-card.status-done,
+/* Finished cards step back, but their results (posters, screenshots) stay at full strength. */
 .action-card.status-declined {
-  opacity: 0.72;
+  opacity: 0.6;
+}
+.action-card.status-done .action-head,
+.action-card.status-done .action-detail,
+.action-card.status-done .action-effect,
+.action-card.status-done .sources {
+  opacity: 0.6;
 }
 .action-head {
   display: flex;
@@ -2617,4 +2623,28 @@ button.bot-pill:hover {
 .desktop pre,
 .desktop code {
   user-select: text;
+}
+
+.poster {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.poster img {
+  display: block;
+  max-width: 100%;
+  max-height: 72vh;
+  width: auto;
+  margin: 0 auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.poster-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.poster-actions a {
+  color: var(--text);
 }

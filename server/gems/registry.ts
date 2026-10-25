@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { GemDef } from "../types.js";
+import { DATA_DIR } from "../paths.js";
 
-const FILE = join(process.cwd(), "data", "gems.json");
+const FILE = join(DATA_DIR, "gems.json");
 const now = () => new Date().toISOString();
 
 export const starterGems: GemDef[] = [

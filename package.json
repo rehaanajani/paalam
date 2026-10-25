@@ -13,7 +13,8 @@
     "start": "NODE_ENV=production tsx server/index.ts",
     "typecheck": "tsc --noEmit",
     "desktop": "vite build && electron .",
-    "package": "vite build && electron-builder --mac --dir"
+    "package": "vite build && electron-builder --mac --dir",
+    "install:mac": "npm run package && rm -rf /Applications/Paalam.app && cp -R dist-desktop/mac-arm64/Paalam.app /Applications/ && open /Applications/Paalam.app"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
@@ -39,8 +40,43 @@
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^9.2.1",
     "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
     "typescript": "^5.9.3",
     "vite": "^8.3.5"
   },
-  "main": "desktop/main.mjs"
+  "main": "desktop/main.mjs",
+  "productName": "Paalam",
+  "build": {
+    "appId": "app.paalam.desktop",
+    "productName": "Paalam",
+    "directories": {
+      "output": "dist-desktop",
+      "buildResources": "build"
+    },
+    "files": [
+      "desktop/**/*",
+      "server/**/*",
+      "dist/**/*",
+      "plugins/**/*",
+      "knowledge/**/*",
+      "package.json",
+      "tsconfig.json",
+      ".env.example",
+      "!**/*.map"
+    ],
+    "asar": false,
+    "npmRebuild": false,
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Paalam records voice notes so Argon can understand what's happening.",
+        "NSLocationWhenInUseUsageDescription": "Paalam shares your location with Argon only when you tap the location button, to find help near you."
+      }
+    }
+  }
 }

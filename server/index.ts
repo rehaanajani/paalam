@@ -72,7 +72,7 @@ app.post("/api/plugins/reload", async (_req, res) => {
   res.json({ reports: await loadPlugins() });
 });
 app.get("/api/status", (_req, res) => {
-  res.json({ demo: !live.gemini, integrations: integrationStatus(), city: config.city, numbers: config.numbers, sample: { text: sampleText, evidence: sampleEvidence.map(({ id, name, kind }) => ({ id, name, kind })) } });
+  res.json({ demo: !live.gemini, envFile: process.env.PAALAM_ENV_FILE || join(process.cwd(), ".env"), integrations: integrationStatus(), city: config.city, numbers: config.numbers, sample: { text: sampleText, evidence: sampleEvidence.map(({ id, name, kind }) => ({ id, name, kind })) } });
 });
 
 app.get("/api/tools", (_req, res) => res.json(publicTools()));

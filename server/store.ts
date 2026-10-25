@@ -4,6 +4,7 @@ import { config, live } from "./config.js";
 import { bearer } from "./google.js";
 import { getJSON } from "./tools/http.js";
 import type { Run } from "./types.js";
+import { DATA_DIR } from "./paths.js";
 import type { Incident } from "./incidents.js";
 
 /**
@@ -12,7 +13,7 @@ import type { Incident } from "./incidents.js";
  * as one JSON string field, without file bytes, which keeps documents small.
  */
 
-const DATA = join(process.cwd(), "data");
+const DATA = DATA_DIR;
 const strip = (r: Run): Run => ({ ...r, input: { ...r.input, evidence: r.input.evidence.map(({ data, ...e }) => e) } });
 const fsBase = () => `https://firestore.googleapis.com/v1/projects/${config.gemini.project}/databases/(default)/documents`;
 

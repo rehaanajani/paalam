@@ -22,7 +22,7 @@ export function Integrations({ status, tools }: { status: Status | null; tools: 
       <header className="page-head">
         <h1>Integrations</h1>
         <p className="muted">
-          Everything runs without keys: missing ones fall back to clearly labelled demo data. Put keys in <code>.env</code> (template: <code>.env.example</code>) and restart. Step-by-step guide: <code>docs/KEYS.md</code>. Keys never reach the browser.
+          Everything runs without keys: missing ones fall back to clearly labelled demo data. Put keys in <code>{status.envFile ?? ".env"}</code> (template: <code>.env.example</code>) and restart. Step-by-step guide: <code>docs/KEYS.md</code>. Keys never reach the browser.
         </p>
       </header>
       <section className="int-list">
