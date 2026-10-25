@@ -2,7 +2,7 @@
 // website runs) in a background process, waits for it, and shows it in a native
 // window. The website and the app are one codebase: a change to web/ or server/
 // appears in both.
-import { app, BrowserWindow, nativeTheme, shell } from "electron";
+import { app, BrowserWindow, Notification, nativeTheme, shell } from "electron";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -112,11 +112,49 @@ function showWindow(url) {
   void window.loadURL(url);
 }
 
+/** Follow-up reminders from the server become native notifications, even with the window closed. */
+async function listenForReminders(url) {
+  for (;;) {
+    try {
+      const res = await fetch(`${url}/api/notifications/stream`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let cut;
+        while ((cut = buffer.indexOf("\n\n")) >= 0) {
+          const chunk = buffer.slice(0, cut);
+          buffer = buffer.slice(cut + 2);
+          const line = chunk.split("\n").find((l) => l.startsWith("data: "));
+          if (!line) continue;
+          const n = JSON.parse(line.slice(6));
+          const note = new Notification({ title: n.title, body: n.message, silent: false });
+          note.on("click", () => {
+            if (!window) showWindow(url);
+            window?.show();
+            window?.focus();
+            window?.webContents.executeJavaScript(`location.hash = "/bridge/${n.threadId}"`).catch(() => {});
+          });
+          note.show();
+        }
+      }
+    } catch {
+      /* server restarting */
+    }
+    if (quitting) return;
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+}
+
 app
   .whenReady()
   .then(async () => {
     const url = await startServer();
     showWindow(url);
+    void listenForReminders(url);
     app.on("activate", () => {
       if (!window) showWindow(url);
     });

@@ -5,6 +5,8 @@ import { Gem, type Mood } from "./Gem";
 import { FactTable } from "./FactTable";
 import { ActionCard } from "./ActionCard";
 import { MapView } from "./MapView";
+import { RichText } from "./RichText";
+import { Reminders } from "./Reminders";
 import type { ActionCard as Card, AuditEntry, Fragment, GemDef, GemResult, Run, RunEvent, Stage } from "../types";
 
 interface Live {
@@ -100,6 +102,7 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
         if (e.type === "done" || e.type === "error") {
           es?.close();
           onSettled?.();
+          void import("../mobile").then((m) => m.syncPhoneReminders()).catch(() => {});
         }
       };
     });
@@ -153,8 +156,8 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
         </article>
       )}
 
-      {/* Argon */}
-      <article className="message assistant">
+      {/* Argon (in a Gem's own chat it stays out of the way unless something went wrong) */}
+      {(!s.run?.target || s.stage === "error") && <article className="message assistant">
         <div className="speaker">
           <Gem argon size={20} name="argon-speaker" mood={argonMood} /> Argon
           {s.run?.demo && <span className="demo-pill">DEMO</span>}
@@ -205,7 +208,7 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
             })}
           </ol>}
         </div>
-      </article>
+      </article>}
 
       {/* Each Gem replies */}
       {fragments.map((f) => {
@@ -217,14 +220,33 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
             <div className="speaker">
               <Gem color={g?.color} size={20} name={f.gemId} mood={r ? (f.urgency === "critical" ? "worried" : "happy") : "busy"} />
               {g?.name ?? f.gemId}
-              <span className={`urgency u-${f.urgency}`}>{f.urgency}</span>
+              {(!r || !r.mode || r.mode === "actions") && !s.run?.target && <span className={`urgency u-${f.urgency}`}>{f.urgency}</span>}
               {g?.origin === "auto" && <span className="auto-pill">built by Argon</span>}
             </div>
             <div className="bubble">
-              <strong className="frag-title">{f.title}</strong>
-              {r ? <p>{r.summary}</p> : <span className="thinking">Checking with {s.tools[f.gemId] ?? 0} tool call(s) so far…</span>}
+              {(!r || r.mode === "actions" || !r.mode) && <strong className="frag-title">{f.title}</strong>}
+              {r ? r.reply ? <RichText text={r.reply} /> : <p>{r.summary}</p> : <span className="thinking">Checking with {s.tools[f.gemId] ?? 0} tool call(s) so far…</span>}
             </div>
-            {r && (
+            {r?.plan && (
+              <div className="result-card plan-card">
+                <div className="result-head">
+                  <span>{r.plan.title}</span>
+                </div>
+                {r.plan.sections.map((sec) => (
+                  <section key={sec.heading}>
+                    <h4>{sec.heading}</h4>
+                    <ul>
+                      {sec.items.map((it, i) => (
+                        <li key={i}>{it}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            )}
+            {r?.reminders?.length ? <Reminders ids={r.reminders} threadId={s.run?.threadId ?? ""} /> : null}
+            {r && r.mode && r.mode !== "actions" && calls.length > 0 && <p className="checked-with small muted">Checked with {[...new Set(calls.filter((c) => c.ok).map((c) => c.tool.replace(/_/g, " ")))].join(", ") || "no tools"}</p>}
+            {r && (!r.mode || r.mode === "actions") && (r.facts.length > 0 || calls.length > 0) && (
               <div className="result-card">
                 <div className="result-head">
                   <span>What {g?.name ?? "the Gem"} found</span>
@@ -268,8 +290,8 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
         );
       })}
 
-      {/* Argon wraps up */}
-      {s.stage === "done" && s.results.length > 0 && (
+      {/* Argon wraps up, when there were real-world actions to check */}
+      {s.stage === "done" && s.results.some((r) => !r.mode || r.mode === "actions") && (
         <article className="message assistant last">
           <div className="speaker">
             <Gem argon size={20} name="argon-speaker-2" mood="happy" /> Argon

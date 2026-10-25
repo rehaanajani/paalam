@@ -114,9 +114,31 @@ export interface MapPin {
   gemId?: string;
 }
 
+/** What a Gem decided its answer needs to be. */
+export type ResponseMode = "answer" | "plan" | "actions";
+
+export interface PlanSection {
+  heading: string;
+  items: string[];
+}
+
+/** A reminder a Gem proposes: once at a time, or daily at a local time. */
+export interface FollowUpDraft {
+  title: string;
+  message: string;
+  daily?: string; // "HH:MM" local time
+  at?: string; // ISO date-time for a one-off
+}
+
 export interface GemResult {
   gemId: string;
   fragmentId: string;
+  mode?: ResponseMode;
+  /** the Gem's answer in its own words (answer and plan modes) */
+  reply?: string;
+  plan?: { title: string; sections: PlanSection[] };
+  /** reminder ids created from this answer */
+  reminders?: string[];
   summary: string;
   facts: Fact[];
   actions: ActionCard[];
@@ -142,7 +164,15 @@ export interface Run {
   createdAt: string;
   stage: Stage;
   demo: boolean;
-  input: { text: string; evidence: Evidence[]; near?: { lat: number; lng: number } };
+  input: {
+    text: string;
+    evidence: Evidence[];
+    near?: { lat: number; lng: number };
+    /** the person's time zone, for reminders */
+    tz?: string;
+    /** what was said earlier in this Bridge, condensed, so Argon and the Gems remember */
+    history?: string;
+  };
   language?: string;
   headline?: string;
   fragments: Fragment[];

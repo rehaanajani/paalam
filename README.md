@@ -49,6 +49,18 @@ The layout follows Socius: a sidebar of living faces, a chat in the middle, sett
 
 It installs like an app (PWA) on phones and desktops.
 
+## How Gems answer
+
+Each Gem picks the shape the situation needs, not a template:
+
+- **answer**: just talk ("should I train today, I'm exhausted?")
+- **plan**: a plan you follow, in sections, plus **follow-ups**: reminders like "06:00 daily: breakfast" or "in 4 hours: check her sugar". They're set automatically (they only notify you) and each can be switched off
+- **actions**: real-world steps that need your approval (call, message, rescue request, form filling, a warning poster)
+
+A **Bridge** is one conversation (one situation) and remembers what was said in it. A **Gem** is a specialist. Argon reads each new message, with the Bridge's history, and routes it to any Gem, including ones you made.
+
+Reminders reach you as native notifications in the desktop app, browser notifications or Web Push on the website, and on-device notifications in the Android app ([docs/ANDROID.md](docs/ANDROID.md)).
+
 ## Browser
 
 Gems can **read a link** (any public page, as text), **open a page** in a real browser to see its form, and **fill a form you approve**. Filling always stops before Submit; submitting is a second approval. Passwords, OTPs, PINs and card details are never filled, and private or local addresses are refused. Try it in the demo: Scam Shield fills a practice complaint form. Set `PAALAM_BROWSER_HEADFUL=1` to watch the window.

@@ -107,7 +107,7 @@ export const budget = {
   },
   gem: {
     thinking: num("GEM_THINKING_BUDGET", 0),
-    maxOutput: num("GEM_MAX_OUTPUT", 2048),
+    maxOutput: num("GEM_MAX_OUTPUT", 6144),
     media: "MEDIA_RESOLUTION_MEDIUM" as const, // reading prescriptions needs detail
   },
   /** Short text-only input is routed by the fast model instead of Argon's. */

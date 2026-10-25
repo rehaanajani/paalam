@@ -78,6 +78,33 @@ export const planSchema = {
 export const actSchema = {
   type: "object",
   properties: {
+    mode: {
+      type: "string",
+      enum: ["answer", "plan", "actions"],
+      description:
+        "answer = just talk (advice, explanations, questions back); plan = a structured plan the person follows (diet, workout, study, recovery, steps), optionally with follow-ups; actions = real-world steps someone must approve (calls, messages, rescue, forms). Pick what the situation needs, not the most elaborate.",
+    },
+    reply: str("answer/plan: your reply to the person in their language, plain text, short paragraphs or '- ' bullets, under 180 words. actions: leave empty."),
+    planTitle: str("plan mode: the plan's title, e.g. 'Hostel bulk: 2,800 kcal a day'. Empty otherwise."),
+    planSections: {
+      type: "array",
+      description: "plan mode: REQUIRED, the plan itself, 2-6 sections (e.g. Breakfast 7:30, Lunch, Pre-workout, Dinner, Rules), each with short concrete items. Empty otherwise. Don't repeat the plan in reply.",
+      items: { type: "object", properties: { heading: str(), items: strs() }, required: ["heading", "items"] },
+    },
+    followUps: {
+      type: "array",
+      description: "Reminders that genuinely help (a daily 6:00 meal reminder, a check-in in 4 hours). Max 4. Empty if none are useful.",
+      items: {
+        type: "object",
+        properties: {
+          title: str("short, e.g. 'Breakfast: 4 eggs + oats'"),
+          message: str("the notification text, one or two sentences"),
+          daily: str("HH:MM 24-hour local time if it repeats daily, else empty"),
+          inMinutes: { type: "integer", description: "for a one-off: minutes from now; 0 if daily" },
+        },
+        required: ["title", "message"],
+      },
+    },
     summary: str("2 sentences for the person: what you found and what to do first"),
     facts: { type: "array", items: factItem },
     location: {
@@ -103,7 +130,7 @@ export const actSchema = {
       },
     },
   },
-  required: ["summary", "facts", "actions"],
+  required: ["mode", "summary", "facts", "actions"],
 };
 
 export const gemDraftSchema = splitSchema.properties.newGem;

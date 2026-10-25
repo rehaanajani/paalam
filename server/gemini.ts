@@ -86,6 +86,20 @@ export async function askJSON<T>(opts: {
   try {
     return JSON.parse(text) as T;
   } catch {
+    // A long plan can run past the output limit and get cut off mid-JSON. Retry once with
+    // double the room and a request to be tighter, rather than failing the whole run.
+    if (!(opts as { retried?: boolean }).retried) {
+      console.warn(`${opts.step}: reply was cut off (${res.candidates?.[0]?.finishReason ?? "invalid JSON"}), retrying with more room`);
+      const b2 = { ...b, maxOutput: b.maxOutput * 2 };
+      const res2 = await ai().models.generateContent({ model, contents: [{ role: "user", parts: [...evidenceParts(opts.evidence ?? []), { text: `${opts.prompt}\n\nKeep it tighter: shorter lines, no repetition.` }] }], config: { ...base, maxOutputTokens: b2.maxOutput } });
+      const u2 = res2.usageMetadata;
+      record(opts.usage, { step: `${opts.step}:retry`, model, input: u2?.promptTokenCount ?? 0, output: u2?.candidatesTokenCount ?? 0, thinking: u2?.thoughtsTokenCount ?? 0, ms: 0 });
+      try {
+        return JSON.parse(res2.text ?? "") as T;
+      } catch {
+        /* fall through */
+      }
+    }
     throw new Error(`${opts.step}: model returned invalid JSON (${text.slice(0, 160)})`);
   }
 }

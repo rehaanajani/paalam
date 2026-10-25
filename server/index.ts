@@ -20,6 +20,8 @@ import { store } from "./store.js";
 import { allIncidents, recordRun, setIncidents } from "./incidents.js";
 import { checkModels, keepWarm } from "./gemini.js";
 import { settings } from "./settings.js";
+import { addPushSubscription, pushKey, reminderStore, startReminderClock } from "./reminders.js";
+import { gems as gemRegistry } from "./gems/registry.js";
 import { ensureVectors, loadKnowledge } from "./knowledge.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
@@ -42,6 +44,23 @@ function start(run: Run) {
   };
   void runBridge(run, emit);
   return run.id;
+}
+
+/** What was said earlier in a Bridge, condensed, so Argon and the Gems remember the conversation. */
+function threadHistory(threadId?: string) {
+  if (!threadId) return undefined;
+  const earlier = [...runs.values()].filter((r) => r.threadId === threadId && r.stage === "done").slice(-4);
+  if (!earlier.length) return undefined;
+  const lines: string[] = [];
+  for (const r of earlier) {
+    if (r.input.text) lines.push(`Person: ${r.input.text.replace(/\n\(Device location:[^)]*\)$/, "").slice(0, 300)}`);
+    if (r.reply) lines.push(`Argon: ${r.reply.slice(0, 300)}`);
+    for (const x of r.results) {
+      const name = gemRegistry.get(x.gemId)?.name ?? x.gemId;
+      lines.push(`${name}: ${(x.reply || x.summary).slice(0, 350)}${x.plan ? ` [plan: ${x.plan.title}]` : ""}${x.reminders?.length ? ` [${x.reminders.length} reminder(s) set]` : ""}`);
+    }
+  }
+  return lines.join("\n").slice(-2400);
 }
 
 /** A finished run is saved and joins the incident index for similar-report matching. */
@@ -77,6 +96,36 @@ app.get("/api/status", (_req, res) => {
 });
 
 app.get("/api/tools", (_req, res) => res.json(publicTools()));
+
+// ── Reminders and notifications ──
+app.get("/api/reminders", (req, res) => res.json(reminderStore.list(req.query.threadId ? String(req.query.threadId) : undefined)));
+app.patch("/api/reminders/:id", (req, res) => {
+  const r = reminderStore.update(req.params.id, { active: !!req.body?.active });
+  r ? res.json(r) : res.status(404).json({ error: "No such reminder" });
+});
+app.delete("/api/reminders/:id", (req, res) => {
+  reminderStore.remove(req.params.id);
+  res.json({ ok: true });
+});
+app.get("/api/notifications", (_req, res) => res.json(reminderStore.notices().slice(-30).reverse()));
+app.get("/api/notifications/stream", (req, res) => {
+  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
+  const off = reminderStore.subscribe((n) => res.write(`data: ${JSON.stringify(n)}\n\n`));
+  const ping = setInterval(() => res.write(": ping\n\n"), 15000);
+  req.on("close", () => {
+    clearInterval(ping);
+    off();
+  });
+});
+app.get("/api/push/key", (_req, res) => res.json({ key: pushKey() }));
+app.post("/api/push/subscribe", (req, res) => {
+  try {
+    addPushSubscription(req.body);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
 
 app.get("/api/settings", (_req, res) => res.json({ ...settings.get(), models: { gem: config.gemini.gemModel, argon: config.gemini.argonModel } }));
 app.put("/api/settings", (req, res) => {
@@ -144,7 +193,8 @@ app.post("/api/runs", upload.array("files"), (req, res) => {
   if (!text && !evidence.length) return res.status(400).json({ error: "Send a message, a recording or a file." });
   const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
   const near = Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng) ? { lat, lng } : undefined;
-  const run = newRun(near ? `${text}\n(Device location: ${lat.toFixed(5)}, ${lng.toFixed(5)})` : text, evidence, false, { near, threadId, target });
+  const tz = String(req.body?.tz ?? "") || undefined;
+  const run = newRun(near ? `${text}\n(Device location: ${lat.toFixed(5)}, ${lng.toFixed(5)})` : text, evidence, false, { near, threadId, target, tz, history: threadHistory(threadId) });
   res.json({ id: start(run), threadId: run.threadId });
 });
 
@@ -262,6 +312,7 @@ for (const r of await store.loadRuns()) {
 setIncidents(await store.loadIncidents());
 void checkModels();
 keepWarm();
+startReminderClock();
 app.listen(config.port, () => {
   const on = integrationStatus().filter((i) => i.live).map((i) => i.id);
   console.log(`Paalam on http://localhost:${config.port}  ·  ${live.gemini ? "live" : "DEMO mode"}  ·  live: ${on.join(", ") || "none"}  ·  ${runs.size} saved run(s) (${store.engine()})`);

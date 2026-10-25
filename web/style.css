@@ -2648,3 +2648,100 @@ button.bot-pill:hover {
 .poster-actions a {
   color: var(--text);
 }
+
+/* ---------- Answers, plans, follow-ups ---------- */
+.rich p {
+  margin: 0 0 6px;
+}
+.rich p:last-child {
+  margin-bottom: 0;
+}
+.rich ul {
+  margin: 2px 0 6px;
+  padding-left: 20px;
+}
+.rich li {
+  margin: 2px 0;
+}
+.plan-card section + section {
+  margin-top: 10px;
+}
+.plan-card h4 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--gem, var(--accent));
+}
+.plan-card ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+}
+.plan-card li {
+  margin: 3px 0;
+}
+.reminders ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reminders li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.reminders li > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.reminders li.off {
+  opacity: 0.5;
+}
+.switch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.switch.on {
+  background: color-mix(in srgb, var(--gem, var(--accent)) 18%, transparent);
+  color: var(--gem, var(--accent));
+  border-color: transparent;
+}
+.checked-with {
+  margin: 4px 0 0 6px;
+}
+.toasts {
+  position: absolute;
+  top: 60px;
+  right: 18px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, 90vw);
+}
+.toast {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  box-shadow: var(--shadow);
+  animation: rise 0.3s ease;
+}
+.toast span {
+  font-size: 13px;
+  color: var(--text-2);
+}

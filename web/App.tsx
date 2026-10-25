@@ -9,6 +9,8 @@ import { GemChat } from "./views/GemChat";
 import { Thread, gemStyle } from "./views/Thread";
 import { SettingsDialog, type SettingsTab } from "./views/Settings";
 import { applyTheme, loadTheme, type Theme } from "./theme";
+import { listenForNotices, type Notice } from "./notify";
+import { syncPhoneReminders } from "./mobile";
 import type { GemDef, Status, ToolInfo } from "./types";
 
 type Route = { view: "argon" } | { view: "bridge"; id: string } | { view: "gem"; id: string };
@@ -38,6 +40,15 @@ export function App() {
   const [fresh, setFresh] = useState<Set<string>>(new Set()); // Gem tabs showing a new conversation
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [offline, setOffline] = useState(false);
+  const [toasts, setToasts] = useState<Notice[]>([]);
+  useEffect(
+    () =>
+      listenForNotices((n) => {
+        setToasts((t) => [...t, n].slice(-3));
+        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== n.id)), 12000);
+      }),
+    [],
+  );
 
   const loadGems = () => api<GemDef[]>("gems").then(setGems);
   const loadThreads = () => api<ThreadRow[]>("threads").then(setThreads);
@@ -68,6 +79,7 @@ export function App() {
         setStatus(s);
         setOffline(false);
         if (wasOffline) {
+          void syncPhoneReminders().catch(() => {});
           void loadGems();
           api<ToolInfo[]>("tools").then(setTools);
         }
@@ -100,6 +112,7 @@ export function App() {
         form.set("lng", String(near.lng));
       }
       if (to.threadId) form.set("threadId", to.threadId);
+      form.set("tz", Intl.DateTimeFormat().resolvedOptions().timeZone);
       if (to.gemId) form.set("gemId", to.gemId);
       const r = await api<{ id: string; threadId: string }>("runs", { method: "POST", body: form });
       if (to.gemId) setFresh((f) => new Set([...f].filter((x) => x !== to.gemId)));
@@ -291,6 +304,16 @@ export function App() {
         {offline && (
           <div className="offline-banner" role="status">
             <b>Paalam's server isn't running.</b> Start it with <code>npm start</code> in the Paalam folder (or open the desktop app). This page reconnects by itself.
+          </div>
+        )}
+        {toasts.length > 0 && (
+          <div className="toasts">
+            {toasts.map((n) => (
+              <button key={n.id} type="button" className="toast" onClick={() => go(`/bridge/${n.threadId}`)}>
+                <b>{n.title}</b>
+                <span>{n.message}</span>
+              </button>
+            ))}
           </div>
         )}
         {err && (
