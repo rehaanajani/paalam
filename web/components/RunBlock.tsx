@@ -185,6 +185,11 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
           ) : (
             <span className="thinking">{STAGE_TEXT[s.stage] ?? "Working…"}</span>
           )}
+          {s.run?.shield?.flagged && (
+            <p className="shield-note">
+              Shield ({s.run.shield.engine}): this input contains text aimed at an AI ({s.run.shield.reasons.join(", ")}). I read it as data, never as instructions.
+            </p>
+          )}
           <ol className="steps">
             {STEPS.map((st) => {
               const i = order.indexOf(st.id);

@@ -9,9 +9,18 @@ export const config = {
     apiKey: env("GEMINI_API_KEY"),
     project: env("GOOGLE_CLOUD_PROJECT"),
     location: env("GOOGLE_CLOUD_LOCATION") || "us-central1",
-    argonModel: env("ARGON_MODEL") || "gemini-2.5-pro",
-    gemModel: env("GEM_MODEL") || "gemini-2.5-flash",
+    // "-latest" aliases follow Google's current models, so a retirement doesn't break the app.
+    argonModel: env("ARGON_MODEL") || "gemini-pro-latest",
+    gemModel: env("GEM_MODEL") || "gemini-flash-latest",
+    imageModel: env("IMAGE_MODEL") || "gemini-3.1-flash-image-preview",
+    embedModel: env("EMBED_MODEL") || "gemini-embedding-001",
   },
+  modelArmor: {
+    template: env("MODEL_ARMOR_TEMPLATE"),
+    location: env("MODEL_ARMOR_LOCATION") || "us-central1",
+  },
+  healthcareLocation: env("HEALTHCARE_LOCATION") || "us-central1",
+  persist: (env("PERSIST") || "file") as "file" | "firestore" | "memory",
   serviceAccount: env("GOOGLE_APPLICATION_CREDENTIALS"),
   mapsKey: env("GOOGLE_MAPS_API_KEY"),
   cloudKey: env("GOOGLE_CLOUD_API_KEY") || env("GOOGLE_MAPS_API_KEY"),
@@ -37,16 +46,28 @@ export const live = {
   maps: !!config.mapsKey,
   cloud: !!config.cloudKey,
   dlp: !!config.serviceAccount && !!config.gemini.project,
+  serviceAccount: !!config.serviceAccount && !!config.gemini.project,
+  modelArmor: !!config.serviceAccount && !!config.gemini.project && !!config.modelArmor.template,
+  firestore: config.persist === "firestore" && !!config.serviceAccount && !!config.gemini.project,
   sms: !!config.twilio.sid && !!config.twilio.token && !!config.twilio.from,
 };
 
-/** The integration status the Settings screen shows. Never includes key values. */
+/** Results of checking each configured model exists on this key (filled at startup). */
+export const modelCheck: Record<string, { model: string; ok: boolean; error?: string }> = {};
+
+/** The integration status the Keys screen shows. Never includes key values. */
 export function integrationStatus() {
+  const m = (k: string) => modelCheck[k];
   return [
-    { id: "gemini", name: "Gemini (Argon + Gems)", live: live.gemini, env: ["GEMINI_API_KEY", "or GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS"], models: { argon: config.gemini.argonModel, gem: config.gemini.gemModel } },
-    { id: "maps", name: "Maps Platform: Places, Routes, Geocoding, Weather, Air Quality", live: live.maps, env: ["GOOGLE_MAPS_API_KEY"] },
-    { id: "cloud", name: "Translation, Text-to-Speech, Safe Browsing", live: live.cloud, env: ["GOOGLE_CLOUD_API_KEY"] },
-    { id: "dlp", name: "Cloud DLP (redaction)", live: live.dlp, env: ["GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT"], fallback: "Local Aadhaar / phone / PAN redaction" },
+    { id: "gemini", name: "Gemini: Argon + Gems", live: live.gemini, env: ["GEMINI_API_KEY", "or GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS"], models: { argon: config.gemini.argonModel, gem: config.gemini.gemModel }, checks: [m("argon"), m("gem")].filter(Boolean), uses: "Splitting, routing, every Gem's two passes, Google Search grounding" },
+    { id: "image", name: "Gemini image model: posters", live: live.gemini, env: ["IMAGE_MODEL (optional)"], checks: [m("image")].filter(Boolean), uses: "Shareable warning and evacuation posters, made only after you approve", fallback: "A plain text poster" },
+    { id: "embed", name: "Gemini Embeddings: knowledge + similar reports", live: live.gemini, env: ["EMBED_MODEL (optional)"], checks: [m("embed")].filter(Boolean), uses: "Searching the knowledge/ folder, spotting repeat reports of one incident", fallback: "Keyword search" },
+    { id: "maps", name: "Maps Platform: Places, Routes, Geocoding, Weather + alerts, Air Quality", live: live.maps, env: ["GOOGLE_MAPS_API_KEY"], uses: "Locations, nearest help, drive times, rain, official weather alerts" },
+    { id: "cloud", name: "Cloud Vision, Translation, Text-to-Speech, Safe Browsing", live: live.cloud, env: ["GOOGLE_CLOUD_API_KEY"], uses: "Reverse image search for old photos, Tamil translation and voice, phishing link checks" },
+    { id: "dlp", name: "Cloud DLP: masking", live: live.dlp, env: ["GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT"], fallback: "Local Aadhaar / phone / PAN masking" },
+    { id: "health", name: "Healthcare Natural Language API", live: live.serviceAccount, env: ["GOOGLE_APPLICATION_CREDENTIALS", "HEALTHCARE_LOCATION (optional)"], uses: "Standard names for medicines and conditions in prescriptions" },
+    { id: "armor", name: "Model Armor: prompt-injection shield", live: live.modelArmor, env: ["MODEL_ARMOR_TEMPLATE", "GOOGLE_APPLICATION_CREDENTIALS"], uses: "Screens forwards and web pages for hidden instructions aimed at the AI", fallback: "Local pattern screening" },
+    { id: "firestore", name: "Firestore: saved Bridges", live: live.firestore, env: ["PERSIST=firestore", "GOOGLE_APPLICATION_CREDENTIALS"], fallback: config.persist === "memory" ? "Not saved" : "Saved to data/ on this machine" },
     { id: "sms", name: "SMS / WhatsApp (Twilio)", live: live.sms, env: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER"], fallback: "Simulated send, logged in the audit trail" },
   ];
 }

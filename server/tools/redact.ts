@@ -1,5 +1,5 @@
-import { GoogleAuth } from "google-auth-library";
 import { config, live } from "../config.js";
+import { bearer } from "../google.js";
 import { postJSON } from "./http.js";
 
 const local: [string, RegExp, (m: string) => string][] = [
@@ -10,14 +10,10 @@ const local: [string, RegExp, (m: string) => string][] = [
   ["OTP", /\b(?:otp|OTP)[:\s]*\d{4,8}\b/g, () => "OTP ••••"],
 ];
 
-let auth: GoogleAuth | null = null;
-
 /** Cloud DLP when the service account is set, otherwise the local Indian-ID patterns. */
 export async function redact(text: string): Promise<{ text: string; found: string[]; engine: string }> {
   if (live.dlp) {
     try {
-      auth ??= new GoogleAuth({ keyFile: config.serviceAccount, scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
-      const token = await auth.getAccessToken();
       const infoTypes = ["PHONE_NUMBER", "EMAIL_ADDRESS", "CREDIT_CARD_NUMBER", "INDIA_AADHAAR_INDIVIDUAL", "INDIA_PAN_INDIVIDUAL", "PERSON_NAME"].map((name) => ({ name }));
       const r = await postJSON(
         `https://dlp.googleapis.com/v2/projects/${config.gemini.project}/content:deidentify`,
@@ -26,7 +22,7 @@ export async function redact(text: string): Promise<{ text: string; found: strin
           inspectConfig: { infoTypes, minLikelihood: "POSSIBLE" },
           deidentifyConfig: { infoTypeTransformations: { transformations: [{ primitiveTransformation: { replaceWithInfoTypeConfig: {} } }] } },
         },
-        { Authorization: `Bearer ${token}` },
+        await bearer(),
       );
       const found = [...new Set<string>((r.overview?.transformationSummaries ?? []).filter((s: any) => s.transformedBytes > 0).map((s: any) => s.infoType?.name))];
       return { text: r.item?.value ?? text, found, engine: "Cloud DLP" };

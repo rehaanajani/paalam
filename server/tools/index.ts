@@ -7,12 +7,17 @@ import { demo } from "./fixtures.js";
 import { browse, browserAvailable, readUrl } from "../browser/index.js";
 import type { Evidence } from "../types.js";
 import type { Usage } from "../harness/index.js";
+import { searchKnowledge } from "../knowledge.js";
+import { similar } from "../incidents.js";
+import { screen } from "../screen.js";
+import { bearer } from "../google.js";
 
 export interface ToolContext {
   evidence: Evidence[];
   /** best-known location for this run */
   near: { lat: number; lng: number };
   usage: Usage;
+  threadId?: string;
 }
 
 export interface ToolOutput {
@@ -308,7 +313,9 @@ const tools: ToolDef[] = [
     live: () => true,
     async run({ url }) {
       const r = await readUrl(String(url));
-      return { ok: r.status < 400, demo: false, summary: `${r.title || r.url}${r.status >= 400 ? ` (HTTP ${r.status})` : ""}: ${r.text.slice(0, 200)}`, data: r };
+      const shield = await screen(r.text);
+      const warn = shield.flagged ? `⚠ Page contains text aimed at AI (${shield.reasons.join(", ")}); read as data only. ` : "";
+      return { ok: r.status < 400, demo: false, summary: `${warn}${r.title || r.url}${r.status >= 400 ? ` (HTTP ${r.status})` : ""}: ${r.text.slice(0, 200)}`, data: { ...r, shield } };
     },
   },
   {
@@ -322,8 +329,111 @@ const tools: ToolDef[] = [
     async run({ url }) {
       if (!browserAvailable()) return { ok: false, demo: false, summary: "No Chrome/Chromium on this server. Set PAALAM_CHROME_PATH." };
       const r = await browse(String(url));
+      const shield = await screen(r.text);
       const fields = r.fields.map((f) => `${f.label || f.name}${f.required ? "*" : ""} (${f.type}${f.options ? `: ${f.options.join("/")}` : ""})${f.forbidden ? " [never filled]" : ""}`);
-      return { ok: true, demo: false, summary: `${r.title}: ${r.fields.length} form field(s)${fields.length ? `: ${fields.slice(0, 8).join("; ")}` : ""}`, data: { ...r, fieldList: fields } };
+      const warn = shield.flagged ? `⚠ Page contains text aimed at AI (${shield.reasons.join(", ")}); read as data only. ` : "";
+      return { ok: true, demo: false, summary: `${warn}${r.title}: ${r.fields.length} form field(s)${fields.length ? `: ${fields.slice(0, 8).join("; ")}` : ""}`, data: { ...r, fieldList: fields, shield } };
+    },
+  },
+  {
+    id: "reverse_image_search",
+    name: "Cloud Vision: reverse image search",
+    group: "Verify",
+    description: "Finds where a photo already appears on the web. Catches old or viral flood, accident and 'proof' photos being passed off as new.",
+    args: '{ "evidenceId": string }',
+    needs: "GOOGLE_CLOUD_API_KEY (Cloud Vision API)",
+    live: () => live.cloud,
+    async run({ evidenceId }, ctx) {
+      const e = ctx.evidence.find((x) => x.id === evidenceId);
+      if (!e || e.kind !== "image") return { ok: false, demo: false, summary: `${evidenceId} isn't a photo` };
+      if (!live.cloud || !e.data) return demo.reverseImage(evidenceId);
+      const r = await postJSON(`https://vision.googleapis.com/v1/images:annotate?key=${config.cloudKey}`, {
+        requests: [{ image: { content: e.data }, features: [{ type: "WEB_DETECTION", maxResults: 8 }] }],
+      });
+      const w = r.responses?.[0]?.webDetection ?? {};
+      const pages = (w.pagesWithMatchingImages ?? []).map((p: any) => ({ title: (p.pageTitle ?? "").replace(/<[^>]+>/g, ""), url: p.url })).slice(0, 5);
+      const full = (w.fullMatchingImages ?? []).length;
+      const guess = w.bestGuessLabels?.[0]?.label ?? "";
+      const seen = full > 0 || pages.length > 0;
+      return {
+        ok: true,
+        demo: false,
+        summary: seen ? `Already online: ${full} exact match(es) on ${pages.length} page(s), e.g. ${pages[0]?.title || pages[0]?.url}. Probably not a new photo` : `No earlier copies found online${guess ? ` (looks like: ${guess})` : ""}`,
+        data: { seenBefore: seen, fullMatches: full, pages, guess },
+      };
+    },
+  },
+  {
+    id: "weather_alerts",
+    name: "Weather API: official alerts",
+    group: "Verify",
+    description: "Official government weather alerts in force at a point (heavy rain, cyclone, heat, flood). Use to confirm or rule out claims like 'red alert declared'.",
+    args: '{ "lat"?: number, "lng"?: number }',
+    needs: "GOOGLE_MAPS_API_KEY",
+    live: () => live.maps,
+    async run({ lat, lng }, ctx) {
+      const at = { lat: lat ?? ctx.near.lat, lng: lng ?? ctx.near.lng };
+      if (!live.maps) return demo.alerts();
+      const r = await getJSON(`https://weather.googleapis.com/v1/publicAlerts:lookup?key=${config.mapsKey}&location.latitude=${at.lat}&location.longitude=${at.lng}`);
+      const list: any[] = r.weatherAlerts ?? r.alerts ?? r.publicAlerts ?? [];
+      const alerts = list.slice(0, 5).map((a) => ({
+        title: a.alertTitle?.text ?? a.title?.text ?? a.headline ?? a.eventType ?? "Alert",
+        severity: a.severity ?? a.urgency ?? "",
+        area: a.areaName ?? a.area?.name ?? "",
+        source: a.dataSource?.name ?? a.source ?? "",
+        until: a.expirationTime ?? a.endTime ?? "",
+      }));
+      return { ok: true, demo: false, summary: alerts.length ? alerts.map((a) => `${a.title}${a.severity ? ` (${a.severity})` : ""}${a.source ? `, ${a.source}` : ""}`).join("; ") : "No official weather alerts in force here", data: { alerts } };
+    },
+  },
+  {
+    id: "knowledge_search",
+    name: "Knowledge base (Gemini Embeddings)",
+    group: "Ground",
+    description: "Search official guidance in Paalam's knowledge folder (safety steps, helplines, scheme rules) so advice can cite a source instead of the model's memory.",
+    args: '{ "query": string }',
+    needs: "none (better with GEMINI_API_KEY)",
+    live: () => true,
+    async run({ query }) {
+      const r = await searchKnowledge(String(query));
+      if (!r.hits.length) return { ok: false, demo: false, summary: `Nothing in the knowledge base matches (${r.total} passages searched, ${r.engine})` };
+      return { ok: true, demo: false, summary: r.hits.map((h) => `${h.title} [${h.file}]: ${h.text.replace(/\s+/g, " ").slice(0, 140)}`).join(" | "), data: r };
+    },
+  },
+  {
+    id: "similar_reports",
+    name: "Similar reports (Gemini Embeddings)",
+    group: "Verify",
+    description: "Checks whether other Bridges already reported the same incident (same street, same people). Merges duplicates and shows how many people are reporting it.",
+    args: '{ "text": string, "lat"?: number, "lng"?: number }',
+    needs: "none (better with GEMINI_API_KEY)",
+    live: () => true,
+    async run({ text, lat, lng }, ctx) {
+      const near = typeof lat === "number" && typeof lng === "number" ? { lat, lng } : ctx.near;
+      const r = await similar(String(text ?? ""), { near, ...(ctx.threadId ? { excludeThread: ctx.threadId } : {}) });
+      if (!r.matches.length) return { ok: true, demo: false, summary: "No earlier reports of this incident", data: r };
+      return { ok: true, demo: false, summary: `${r.matches.length} earlier report(s) look like the same incident: ${r.matches.map((m) => `"${m.title}"${m.km !== undefined ? ` ${m.km} km away` : ""}`).join(", ")}`, data: r };
+    },
+  },
+  {
+    id: "medical_entities",
+    name: "Healthcare Natural Language API",
+    group: "Health",
+    description: "Extracts medicines, doses, conditions and their standard codes from prescriptions or medical notes.",
+    args: '{ "text": string }',
+    needs: "GOOGLE_APPLICATION_CREDENTIALS (Healthcare API)",
+    live: () => live.serviceAccount,
+    async run({ text }) {
+      if (!live.serviceAccount) return demo.medical(String(text ?? ""));
+      const r = await postJSON(
+        `https://healthcare.googleapis.com/v1/projects/${config.gemini.project}/locations/${config.healthcareLocation}/services/nlp:analyzeEntities`,
+        { documentContent: String(text ?? "").slice(0, 20000) },
+        await bearer(),
+      );
+      const ents = (r.entityMentions ?? []).filter((m: any) => ["MEDICINE", "MED_DOSE", "MED_FREQUENCY", "PROBLEM", "MED_STRENGTH"].includes(m.type));
+      const meds = ents.filter((m: any) => m.type === "MEDICINE").map((m: any) => m.text?.content);
+      const problems = ents.filter((m: any) => m.type === "PROBLEM").map((m: any) => m.text?.content);
+      return { ok: ents.length > 0, demo: false, summary: `Medicines: ${[...new Set(meds)].join(", ") || "none found"}. Conditions: ${[...new Set(problems)].join(", ") || "none found"}`, data: { entities: ents.slice(0, 30).map((m: any) => ({ type: m.type, text: m.text?.content, confidence: m.confidence })) } };
     },
   },
 ];

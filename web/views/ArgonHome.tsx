@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Play } from "lucide-react";
 import { Gem } from "../components/Gem";
 import { Constellation } from "../components/Constellation";
 import { Composer } from "../components/Composer";
@@ -39,7 +39,7 @@ export function ArgonHome({ gems, status, busy, onSend, onSample, onOpenGem }: {
         {picked && <p className="picked-line">{picked.name}: {picked.purpose}</p>}
         <div className="suggestions">
           <button type="button" className="suggest-demo" onClick={onSample} disabled={busy}>
-            <Sparkles size={15} />
+            <Play size={15} />
             <span>
               <b>Try the demo:</b> a Chennai family's flood-night WhatsApp (flood + insulin without power + a relief scam, all at once)
             </span>

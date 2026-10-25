@@ -1,11 +1,11 @@
 import type { CSSProperties } from "react";
 import { useState, type KeyboardEvent } from "react";
-import { AlertTriangle, BellRing, Check, Globe, MessageSquare, MousePointerClick, Navigation, Phone, Send, Share2, ShieldAlert, Volume2, X } from "lucide-react";
+import { AlertTriangle, BellRing, Check, Globe, Image as ImageIcon, MessageSquare, MousePointerClick, Navigation, Phone, Send, Share2, ShieldAlert, Volume2, X } from "lucide-react";
 import { api, runClient } from "../api";
 import { Gem } from "./Gem";
 import type { ActionCard as Card, GemDef, ToolCall } from "../types";
 
-const icons = { navigate: Navigation, call: Phone, sms: MessageSquare, share: Share2, alert: BellRing, readback: Volume2, request: Send, warn: ShieldAlert, browser_fill: Globe, browser_submit: MousePointerClick };
+const icons = { navigate: Navigation, call: Phone, sms: MessageSquare, share: Share2, alert: BellRing, readback: Volume2, request: Send, warn: ShieldAlert, browser_fill: Globe, browser_submit: MousePointerClick, poster: ImageIcon };
 
 /**
  * One proposed action, asked as a question with lettered answers like Socius's

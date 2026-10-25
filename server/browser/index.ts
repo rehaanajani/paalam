@@ -27,11 +27,18 @@ const headful = () => process.env.PAALAM_BROWSER_HEADFUL === "1";
 const FORBIDDEN_FIELD = /pass(word|code)?|\botp\b|one.?time|cvv|cvc|card.?(no|number)|credit|debit|upi.?pin|\bpin\b|mpin|net.?banking|security.?code|captcha/i;
 
 // ── Screenshots are kept here and served by id, so they never bloat a run or reach a model ──
-const shots = new Map<string, { png: Buffer; at: number }>();
-export const getShot = (id: string) => shots.get(id)?.png;
+const shots = new Map<string, { png: Buffer; type: string; at: number }>();
+export const getShot = (id: string) => shots.get(id);
+/** Stores an image (screenshot or poster) and returns its id for /api/shots/:id. */
+export function keepImage(data: Buffer, type: string) {
+  const id = randomUUID().slice(0, 12);
+  shots.set(id, { png: data, type, at: Date.now() });
+  for (const [k, v] of shots) if (Date.now() - v.at > 60 * 60 * 1000) shots.delete(k);
+  return id;
+}
 function keepShot(png: Buffer) {
   const id = randomUUID().slice(0, 12);
-  shots.set(id, { png, at: Date.now() });
+  shots.set(id, { png, type: "image/jpeg", at: Date.now() });
   for (const [k, v] of shots) if (Date.now() - v.at > 60 * 60 * 1000) shots.delete(k);
   return id;
 }

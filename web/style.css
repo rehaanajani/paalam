@@ -2553,3 +2553,20 @@ button.bot-pill:hover {
   padding: 1px 5px;
   border-radius: 5px;
 }
+.model-check.ok {
+  color: var(--success);
+}
+.model-check.bad {
+  color: var(--danger);
+}
+.shield-note {
+  font-size: 12.5px;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 4px;
+}
+.action-card.status-done .shot img[src*="shots"] {
+  max-height: none;
+}

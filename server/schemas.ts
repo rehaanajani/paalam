@@ -60,7 +60,7 @@ export const planSchema = {
     facts: { type: "array", items: factItem },
     toolCalls: {
       type: "array",
-      description: "Up to 6 calls to your tools that would verify facts or find help",
+      description: "Up to 8 calls to your tools that would verify facts or find help",
       items: {
         type: "object",
         properties: {
@@ -90,11 +90,11 @@ export const actSchema = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["navigate", "call", "sms", "share", "alert", "readback", "request", "warn", "browser_fill"] },
+          kind: { type: "string", enum: ["navigate", "call", "sms", "share", "alert", "readback", "request", "warn", "browser_fill", "poster"] },
           title: str("Imperative, e.g. 'Send rescue request to 1070'"),
           detail: str("Why, in one or two sentences"),
           effect: str("Exactly what happens if approved"),
-          payloadJson: str("JSON object string: navigate {lat,lng,label}; call {number,script}; sms {to,body}; share {text}; alert {to,body}; request {to,body}; readback {text,lang}; warn {text}; browser_fill {url, steps:[{field, value}]} using field labels the browse tool reported (never passwords/OTP/card/PIN; it stops before submit)"),
+          payloadJson: str("JSON object string: navigate {lat,lng,label}; call {number,script}; sms {to,body}; share {text}; alert {to,body}; request {to,body}; readback {text,lang}; warn {text}; browser_fill {url, steps:[{field, value}]} using field labels the browse tool reported (never passwords/OTP/card/PIN; it stops before submit); poster {headline, lines:[string], lang, style} for a shareable warning or instruction image"),
           evidence: strs("evidence and tool ids backing this action"),
           unresolved: strs("what is still unknown that a human should check"),
           priority: { type: "integer" },

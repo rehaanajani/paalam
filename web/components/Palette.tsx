@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Gem as GemIcon, Plus, Settings, Sparkles, X } from "lucide-react";
+import { Gem as GemIcon, MessageSquarePlus, Plus, Settings, X } from "lucide-react";
 import { Gem } from "./Gem";
 import type { GemDef } from "../types";
 
@@ -13,7 +13,7 @@ export function Palette({ gems, threads, onClose, onArgon, onGem, onThread, onCr
   useEffect(() => input.current?.focus(), []);
   const items = useMemo<Item[]>(() => {
     const all: Item[] = [
-      { key: "new", label: "New bridge with Argon", icon: <Sparkles size={16} />, run: onArgon },
+      { key: "new", label: "New bridge with Argon", icon: <MessageSquarePlus size={16} />, run: onArgon },
       { key: "gem", label: "Create a Gem", icon: <Plus size={16} />, run: onCreateGem },
       { key: "argon", label: "Argon", icon: <Gem argon size={20} name="pal-argon" />, run: onArgon },
       ...gems.map((g) => ({ key: `g:${g.id}`, label: g.name, icon: <Gem color={g.color} size={20} name={g.id} />, run: () => onGem(g.id) })),

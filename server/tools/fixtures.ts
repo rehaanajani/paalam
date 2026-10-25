@@ -50,6 +50,16 @@ export const demo = {
       return { ok: true, demo: true, summary: "News reports waterlogging in Velachery and Pallikaranai after overnight rain; Greater Chennai Corporation has opened relief centres.", data: { sources: [{ title: "Greater Chennai Corporation (demo source)", url: "https://chennaicorporation.gov.in" }] } };
     return { ok: true, demo: true, summary: "Demo search: add GEMINI_API_KEY for live Google Search grounding.", data: { sources: [] } };
   },
+  reverseImage(id: string): ToolOutput {
+    return { ok: true, demo: true, summary: `No earlier copies of ${id} found online (demo). With a key, Cloud Vision checks the whole web`, data: { seenBefore: false, pages: [] } };
+  },
+  alerts(): ToolOutput {
+    return { ok: true, demo: true, summary: "Sample alert: heavy-rainfall warning for Chennai district from the state weather service (demo data)", data: { alerts: [{ title: "Heavy rainfall warning", severity: "Severe", area: "Chennai", source: "demo" }] } };
+  },
+  medical(text: string): ToolOutput {
+    const meds = ["Human Mixtard 30/70 (insulin)", "Metformin", "Amlodipine"].filter((m) => text.toLowerCase().includes(m.split(" ")[0]!.toLowerCase()));
+    return { ok: meds.length > 0, demo: true, summary: `Medicines: ${meds.join(", ") || "none found"}. Conditions: type 2 diabetes, hypertension (demo)`, data: { entities: meds } };
+  },
   drug(drug: string): ToolOutput {
     if (/insulin/i.test(drug))
       return { ok: true, demo: true, summary: "In-use insulin can be kept at room temperature (up to 30°C) for up to 28 days. Keep away from direct heat and light. Do not freeze.", data: { source: "openFDA (cached)" } };

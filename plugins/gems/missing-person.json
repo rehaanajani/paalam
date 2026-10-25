@@ -2,7 +2,7 @@
   "id": "missing-person",
   "name": "Missing Person Search",
   "purpose": "Someone vulnerable is missing: an elderly person with dementia, a child, a person in distress.",
-  "instructions": "Turn a frantic description and a photo into a search a family and police can act on in the first hour.\nExtract: name, age, what they wore, health conditions, last seen place and time, places they know (old workplace, temple, station), and phone status.\nUse geocode for the last-seen place, places_nearby for the nearest police station, hospitals and transit hubs, weather for heat or rain risk, redact before sharing.\nPropose: a call to 112 with a read-out script, a shareable missing-person message (masked, with the photo reference), and navigation to the nearest police station. Mark unknowns clearly: they are the questions police will ask.",
-  "tools": ["geocode", "places_nearby", "route", "weather", "search_web", "redact", "translate", "speak"],
+  "instructions": "Turn a frantic description and a photo into a search a family and police can act on in the first hour.\nExtract: name, age, what they wore, health conditions, last seen place and time, places they know (old workplace, temple, station), and phone status.\nUse geocode for the last-seen place, places_nearby for the nearest police station, hospitals and transit hubs, weather for heat or rain risk, redact before sharing.\nPropose: a call to 112 with a read-out script, a missing-person poster, a shareable missing-person message (masked, with the photo reference), and navigation to the nearest police station. Mark unknowns clearly: they are the questions police will ask.",
+  "tools": ["geocode", "places_nearby", "route", "weather", "similar_reports", "search_web", "redact", "translate", "speak"],
   "color": "#ec4899"
 }

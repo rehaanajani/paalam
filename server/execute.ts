@@ -1,6 +1,8 @@
 import { config, live } from "./config.js";
 import { toolRegistry } from "./tools/index.js";
-import { fillForm, submitForm, type FillStep } from "./browser/index.js";
+import { fillForm, submitForm, keepImage, type FillStep } from "./browser/index.js";
+import { generateImage } from "./gemini.js";
+import { posterSvg } from "./poster.js";
 import type { ActionCard, Run } from "./types.js";
 
 export interface Execution {
@@ -74,6 +76,22 @@ export async function execute(a: ActionCard, run: Run): Promise<Execution> {
           status: "awaiting",
         },
       };
+    }
+    case "poster": {
+      const lines = (Array.isArray(p.lines) ? p.lines : []).map(String).slice(0, 6);
+      const headline = String(p.headline ?? a.title);
+      if (live.gemini)
+        try {
+          const img = await generateImage(
+            `Design a clear, high-contrast public-safety poster for sharing on WhatsApp in India. Style: ${p.style ?? "bold, calm, official-looking but not imitating any government logo or seal"}. ` +
+              `Headline: "${headline}". Lines, exactly as written: ${lines.map((l) => `"${l}"`).join("; ")}. Language: ${p.lang ?? "English"}. ` +
+              "Large legible text, simple icons, no people's faces, no logos, no QR codes, no phone numbers other than those in the lines.",
+          );
+          return { ok: true, result: "Poster ready. Long-press or right-click to save and share.", shotId: keepImage(img.data, img.mimeType) };
+        } catch (e) {
+          console.warn("Poster generation failed, using the plain poster:", (e as Error).message.slice(0, 160));
+        }
+      return { ok: true, result: live.gemini ? "Image model unavailable, so here's a plain poster." : "Plain poster (add GEMINI_API_KEY for an AI-designed one).", shotId: keepImage(Buffer.from(posterSvg(headline, lines)), "image/svg+xml") };
     }
     case "browser_submit": {
       const r = await submitForm(String(p.holdId));

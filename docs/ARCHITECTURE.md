@@ -58,7 +58,7 @@ flowchart LR
 |---|---|---|---|
 | ① Intake | server | Files become numbered **evidence** (E1, E2…). Photo EXIF date/GPS is read *before* anything else (WhatsApp strips it, and that absence is itself a signal). Voice is recorded as 16 kHz mono WAV in the browser: Gemini reads it directly, and it's small. | none |
 | ② Split | **Argon** | Separates the input into distinct problems, merges duplicates, assigns urgency, routes each to one Gem. If nothing fits, Argon **designs a new Gem** on the spot from the tool registry and saves it. | `ARGON_MODEL` (fast model for short text-only input) |
-| ③ Gems | each **Gem**, in parallel | **Pass 1, plan:** read only its evidence, draft facts, choose ≤ 6 tool calls. **Tools run** (only the tools ticked for that Gem; anything else is refused). **Pass 2, act:** with tool results, settle facts and propose 2–4 actions. | `GEM_MODEL` |
+| ③ Gems | each **Gem**, in parallel | **Pass 1, plan:** read only its evidence, draft facts, choose ≤ 8 tool calls. **Tools run** (only the tools ticked for that Gem; anything else is refused). **Pass 2, act:** with tool results, settle facts and propose 2–4 actions. | `GEM_MODEL` |
 | ④ Verify | **trust layer** | Plain code, after the model. See §3. | none |
 | ⑤ Act | **you** | Every action is a card: what, why, *exactly* what happens if approved, the evidence behind it, and what's still unknown. Nothing leaves without a tap. | none |
 
@@ -76,7 +76,7 @@ A Gem is four things: **instructions · a model · allowed tools · knowledge**.
 | 🟢 Health Guard | prescriptions, medicines, symptoms | drug_label, places_nearby, route, redact, translate, speak, search_web |
 | 🟡 Scam Shield | forwards, fake relief, Aadhaar/OTP grabs | check_link, search_web, redact, translate, speak |
 | 🔴 Road Responder | accidents, collapse, fire | geocode, places_nearby, route, weather, translate, speak |
-| ✨ *any new Gem* | built in **Gem Studio** ("describe it → Argon designs it") or automatically by Argon mid-run | any subset |
+| *any new Gem* | built in **Gem Studio** ("describe it → Argon designs it") or automatically by Argon mid-run | any subset |
 
 **The "on the day" advantage:** whatever problem statement is announced, a new Gem takes about 2 minutes. The platform doesn't change.
 
@@ -167,6 +167,16 @@ The demo uses Paalam's own **practice form** (`/practice/complaint`), clearly la
 
 `server/plugins.ts` loads `plugins/tools/*.ts|js` (default-export a tool) and `plugins/gems/*.json` at startup and on **Settings → Plugins → Reload**. Plugin tools can't replace built-ins; plugin Gems can't be overwritten from the UI. Guide: [PLUGINS.md](PLUGINS.md).
 
+## 5d. Knowledge, similar reports, shield, saving
+
+| Module | What it does | Without keys |
+|---|---|---|
+| `server/knowledge.ts` | Chunks `knowledge/*.md`, embeds with Gemini Embeddings (cached in `data/`), `knowledge_search` returns cited passages | Keyword search |
+| `server/incidents.ts` | Every finished problem is embedded; `similar_reports` finds earlier Bridges about the same incident, boosted by map distance | Keyword overlap |
+| `server/screen.ts` | Model Armor `sanitizeUserPrompt` on the person's input and on every page `read_url`/`browse` reads; flagged text is marked and read as data only | Local injection patterns |
+| `server/store.ts` | Saves runs and incidents; restores them on start (interrupted runs are marked) | JSON files in `data/` |
+| `gemini.ts → checkModels` | Confirms each configured model exists on the key at startup; the Keys screen shows ✓/✕ | n/a |
+
 ## 6. Actions and what really happens
 
 `server/execute.ts`. Runs only after approval.
@@ -182,6 +192,7 @@ The demo uses Paalam's own **practice form** (`/practice/complaint`), clearly la
 | warn | Marks it on this device |
 | browser_fill | Opens the page, fills the approved fields, screenshots it, **stops**; adds a Submit card |
 | browser_submit | Presses submit on the page Paalam is holding (15-minute limit), screenshots the result |
+| poster | Gemini image model draws a shareable poster from the approved headline and lines; falls back to a plain drawn poster |
 
 Anything simulated says so in its result. Nothing pretends to have been sent.
 

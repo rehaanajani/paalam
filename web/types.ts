@@ -6,7 +6,9 @@ export interface Integration {
   live: boolean;
   env: string[];
   fallback?: string;
+  uses?: string;
   models?: { argon: string; gem: string };
+  checks?: { model: string; ok: boolean; error?: string }[];
 }
 
 export interface Status {

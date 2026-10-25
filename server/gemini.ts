@@ -115,3 +115,47 @@ export async function groundedSearch(question: string, usage?: Usage) {
     .slice(0, 5);
   return { answer: res.text ?? "", sources };
 }
+
+/** Text embeddings for knowledge search and similar-report matching. */
+export async function embed(texts: string[], task: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY" | "SEMANTIC_SIMILARITY" = "SEMANTIC_SIMILARITY"): Promise<number[][]> {
+  const out: number[][] = [];
+  for (let i = 0; i < texts.length; i += 100) {
+    const res = await ai().models.embedContent({
+      model: config.gemini.embedModel,
+      contents: texts.slice(i, i + 100),
+      config: { outputDimensionality: 768, taskType: task },
+    });
+    out.push(...(res.embeddings ?? []).map((e) => e.values ?? []));
+  }
+  return out;
+}
+
+/** One image from Gemini's image model. Returns the bytes and their type. */
+export async function generateImage(prompt: string): Promise<{ data: Buffer; mimeType: string }> {
+  const res = await ai().models.generateContent({
+    model: config.gemini.imageModel,
+    contents: prompt,
+    config: { responseModalities: ["IMAGE", "TEXT"] },
+  });
+  const part = res.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+  if (!part?.inlineData?.data) throw new Error(`${config.gemini.imageModel} returned no image`);
+  return { data: Buffer.from(part.inlineData.data, "base64"), mimeType: part.inlineData.mimeType ?? "image/png" };
+}
+
+/** Confirms each configured model exists for this key, so a retired name shows up on the Keys screen, not mid-demo. */
+export async function checkModels() {
+  if (!live.gemini) return;
+  const { modelCheck } = await import("./config.js");
+  const models = { argon: config.gemini.argonModel, gem: config.gemini.gemModel, image: config.gemini.imageModel, embed: config.gemini.embedModel };
+  await Promise.all(
+    Object.entries(models).map(async ([k, model]) => {
+      try {
+        await ai().models.get({ model });
+        modelCheck[k] = { model, ok: true };
+      } catch (e) {
+        modelCheck[k] = { model, ok: false, error: (e as Error).message.slice(0, 160) };
+        console.warn(`Model check failed for ${k} (${model}): ${(e as Error).message.slice(0, 160)}`);
+      }
+    }),
+  );
+}

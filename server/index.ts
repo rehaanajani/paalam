@@ -16,6 +16,10 @@ import { loadPlugins, pluginReports } from "./plugins.js";
 import { practiceRoutes } from "./practice.js";
 import { getShot, browserAvailable } from "./browser/index.js";
 import { allowPractice } from "./browser/net.js";
+import { store } from "./store.js";
+import { allIncidents, recordRun, setIncidents } from "./incidents.js";
+import { checkModels } from "./gemini.js";
+import { loadKnowledge } from "./knowledge.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
 const app = express();
@@ -33,9 +37,19 @@ function start(run: Run) {
   const emit = (e: RunEvent) => {
     history.get(run.id)!.push(e);
     for (const l of listeners.get(run.id) ?? []) l(e);
+    if (e.type === "done" || e.type === "error") void settle(run);
   };
   void runBridge(run, emit);
   return run.id;
+}
+
+/** A finished run is saved and joins the incident index for similar-report matching. */
+async function settle(run: Run) {
+  if (run.stage === "done") {
+    await recordRun(run).catch(() => {});
+    void store.saveIncidents(allIncidents());
+  }
+  void store.saveRun(run);
 }
 
 /** What the browser gets: no raw file bytes. */
@@ -49,8 +63,8 @@ practiceRoutes(app);
 allowPractice(config.port);
 
 app.get("/api/shots/:id", (req, res) => {
-  const png = getShot(req.params.id);
-  png ? res.type("jpeg").set("cache-control", "private, max-age=3600").send(png) : res.status(404).end();
+  const shot = getShot(req.params.id);
+  shot ? res.type(shot.type).set("cache-control", "private, max-age=3600").send(shot.png) : res.status(404).end();
 });
 
 app.get("/api/plugins", (_req, res) => res.json({ reports: pluginReports(), browser: browserAvailable() }));
@@ -195,6 +209,7 @@ app.post("/api/runs/:id/actions/:actionId", async (req, res) => {
   if (!req.body?.approve) {
     action.status = "declined";
     run.audit.push({ at, who: "you", what: `Declined: ${action.title}` });
+    void store.saveRun(run);
     return res.json({ action });
   }
   action.status = "approved";
@@ -205,6 +220,7 @@ app.post("/api/runs/:id/actions/:actionId", async (req, res) => {
     action.result = out.result;
     if (out.shotId) action.shotId = out.shotId;
     run.audit.push({ at: new Date().toISOString(), who: action.gemId, what: out.result });
+    void store.saveRun(run);
     if (out.followUp) {
       const result = run.results.find((r) => r.actions.includes(action));
       result?.actions.splice(result.actions.indexOf(action) + 1, 0, out.followUp);
@@ -225,7 +241,16 @@ if (existsSync(dist)) {
 }
 
 await loadPlugins();
+loadKnowledge();
+for (const r of await store.loadRuns()) {
+  // A run cut off by a restart can't resume; mark it rather than leave it spinning.
+  if (!["done", "error"].includes(r.stage)) Object.assign(r, { stage: "error", error: "Interrupted by a server restart. Send it again." });
+  runs.set(r.id, r);
+  history.set(r.id, []);
+}
+setIncidents(await store.loadIncidents());
+void checkModels();
 app.listen(config.port, () => {
   const on = integrationStatus().filter((i) => i.live).map((i) => i.id);
-  console.log(`Paalam on http://localhost:${config.port}  ·  ${live.gemini ? "live" : "DEMO mode"}  ·  live: ${on.join(", ") || "none"}`);
+  console.log(`Paalam on http://localhost:${config.port}  ·  ${live.gemini ? "live" : "DEMO mode"}  ·  live: ${on.join(", ") || "none"}  ·  ${runs.size} saved run(s) (${store.engine()})`);
 });

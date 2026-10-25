@@ -69,7 +69,8 @@ export type ActionKind =
   | "request"
   | "warn"
   | "browser_fill"
-  | "browser_submit";
+  | "browser_submit"
+  | "poster";
 
 export interface ActionCard {
   id: string;
@@ -149,6 +150,8 @@ export interface Run {
   /** set when no Gem fitted and Argon drafted one */
   proposedGem?: GemDef;
   audit: AuditEntry[];
+  /** what the injection shield found in untrusted input */
+  shield?: { flagged: boolean; reasons: string[]; engine: string };
   usage: Usage;
   error?: string;
 }

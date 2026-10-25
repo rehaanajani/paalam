@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from "react";
-import { Loader2, Plus, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { api } from "../api";
 import { Gem } from "../components/Gem";
 import type { GemDef, ToolInfo } from "../types";
@@ -59,12 +59,12 @@ export function GemStudio({ gems, tools, onChanged }: { gems: GemDef[]; tools: T
 
       <section className="panel builder">
         <h2>
-          <Wand2 size={16} /> Describe a new Gem
+          <Plus size={16} /> Describe a new Gem
         </h2>
         <div className="builder-row">
           <input value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask()} placeholder="e.g. Help families find a missing elderly person with dementia" />
           <button type="button" className="primary" onClick={() => ask()} disabled={busy || !desc.trim()}>
-            {busy && !draft ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />} Let Argon design it
+            {busy && !draft ? <Loader2 size={16} className="spin" /> : <Gem argon size={18} name="studio-argon" />} Let Argon design it
           </button>
         </div>
         <div className="examples">

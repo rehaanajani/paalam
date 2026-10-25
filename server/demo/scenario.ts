@@ -66,6 +66,9 @@ export const scenario = {
       toolCalls: [
         { tool: "geocode", argsJson: JSON.stringify({ address: "Vijayanagar 3rd Main Road, Velachery" }), why: "pin the house" },
         { tool: "weather", argsJson: "{}", why: "confirm heavy rain right there" },
+        { tool: "weather_alerts", argsJson: "{}", why: "any official alert in force" },
+        { tool: "reverse_image_search", argsJson: JSON.stringify({ evidenceId: "E2" }), why: "is the street photo new" },
+        { tool: "similar_reports", argsJson: JSON.stringify({ text: "Family trapped by rising flood water, Vijayanagar 3rd Main Road, Velachery" }), why: "same house already reported?" },
         { tool: "search_web", argsJson: JSON.stringify({ question: "Is there flooding in Velachery Chennai right now?" }), why: "confirm reported flooding" },
         { tool: "places_nearby", argsJson: JSON.stringify({ query: "flood relief shelter" }), why: "nearest shelter" },
         { tool: "route", argsJson: "{}", why: "drive time for the rescue team" },
@@ -74,7 +77,9 @@ export const scenario = {
     health: {
       facts: [],
       toolCalls: [
+        { tool: "medical_entities", argsJson: JSON.stringify({ text: sampleEvidence[2]!.text }), why: "medicines and conditions from the prescription" },
         { tool: "drug_label", argsJson: JSON.stringify({ drug: "insulin", section: "storage" }), why: "is warm insulin still usable" },
+        { tool: "knowledge_search", argsJson: JSON.stringify({ query: "insulin storage without refrigeration during power cut" }), why: "official guidance" },
         { tool: "places_nearby", argsJson: JSON.stringify({ query: "24 hour pharmacy" }), why: "replacement insulin" },
         { tool: "route", argsJson: "{}", why: "how far" },
         { tool: "redact", argsJson: JSON.stringify({ text: sampleEvidence[2]!.text }), why: "mask Aadhaar and phone before sharing" },
@@ -107,6 +112,9 @@ export const scenario = {
           { field: "House number", value: "Not given", status: "unknown" as const, sources: [], verification: "unverified" as const, note: "Ask the family or use their live location." },
           { field: "Water level", value: "Knee-deep inside the house, rising", status: "reported" as const, sources: ["E1", "E2"], verification: "unverified" as const },
           { field: "Rain right now", value: wx?.summary ?? "Unknown", status: "inferred" as const, sources: [id("weather")], verification: "verified" as const },
+          { field: "Official alert", value: find(calls, "weather_alerts")?.summary ?? "Unknown", status: "inferred" as const, sources: [id("weather_alerts")], verification: find(calls, "weather_alerts") ? ("verified" as const) : ("unverified" as const) },
+          { field: "Street photo", value: find(calls, "reverse_image_search")?.summary ?? "Not checked", status: "inferred" as const, sources: ["E2", id("reverse_image_search")], verification: find(calls, "reverse_image_search") ? ("verified" as const) : ("unverified" as const) },
+          { field: "Earlier reports", value: find(calls, "similar_reports")?.summary ?? "Not checked", status: "inferred" as const, sources: [id("similar_reports")], verification: find(calls, "similar_reports") ? ("verified" as const) : ("unverified" as const) },
           { field: "Area flooding", value: news?.summary ?? "Unknown", status: "inferred" as const, sources: [id("search_web")], verification: "verified" as const },
           { field: "People", value: "3: caller, mother, grandmother (78)", status: "reported" as const, sources: ["E1"], verification: "unverified" as const },
           { field: "Can't walk", value: "Grandmother, 78. Needs to be carried", status: "reported" as const, sources: ["E1"], verification: "unverified" as const },
@@ -172,7 +180,8 @@ export const scenario = {
         facts: [
           { field: "Patient", value: "Lakshmi S., 78 F. Type 2 diabetes, hypertension", status: "reported" as const, sources: ["E3"], verification: "unverified" as const },
           { field: "Insulin", value: "Human Mixtard 30/70: 18 U before breakfast, 12 U before dinner", status: "reported" as const, sources: ["E3"], verification: "unverified" as const, note: "Copied exactly from the prescription. Not changed." },
-          { field: "Other medicines", value: "Metformin 500 mg twice daily; Amlodipine 5 mg morning", status: "reported" as const, sources: ["E3"], verification: "unverified" as const },
+          { field: "Other medicines", value: "Metformin 500 mg twice daily; Amlodipine 5 mg morning", status: "reported" as const, sources: ["E3", id("medical_entities")], verification: find(calls, "medical_entities") ? ("verified" as const) : ("unverified" as const), note: "Names confirmed by medical entity extraction; doses copied from the prescription." },
+          { field: "Official guidance", value: find(calls, "knowledge_search")?.summary.slice(0, 220) ?? "None found", status: "inferred" as const, sources: [id("knowledge_search")], verification: find(calls, "knowledge_search") ? ("verified" as const) : ("unverified" as const) },
           { field: "Insulin storage", value: label?.summary ?? "Unknown. Ask a pharmacist", status: "inferred" as const, sources: [id("drug_label")], verification: label ? ("verified" as const) : ("unverified" as const) },
           { field: "Fridge power", value: "Off since last night", status: "reported" as const, sources: ["E1"], verification: "unverified" as const },
           { field: "Sugar reading", value: "Not given", status: "unknown" as const, sources: [], verification: "unverified" as const, note: "Ask if they have a glucometer." },
@@ -249,6 +258,20 @@ export const scenario = {
             evidence: ["E4", id("check_link"), id("search_web")],
             unresolved: [],
             priority: 2,
+          },
+          {
+            kind: "poster" as const,
+            title: "Make a warning poster for the family group",
+            detail: "A picture travels further on WhatsApp than a text correction. Generated only if you approve.",
+            effect: "Creates one image you can save and forward. Nothing is sent.",
+            payloadJson: JSON.stringify({
+              headline: "₹5000 flood relief link is FAKE",
+              lines: ["It is not a .gov.in website", "No government scheme asks for Aadhaar or OTP on a link", "Don't open it. Don't forward it.", "Report fraud: call 1930", "போலி செய்தி. ஆதார், OTP கொடுக்காதீர்கள்."],
+              lang: "English and Tamil",
+            }),
+            evidence: ["E4", id("check_link"), id("search_web")],
+            unresolved: [],
+            priority: 3,
           },
           {
             kind: "browser_fill" as const,
