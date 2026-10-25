@@ -14,6 +14,7 @@ const icons = { navigate: Navigation, call: Phone, sms: MessageSquare, share: Sh
 export function ActionCard({ runId, card, gem, tools, onChange }: { runId: string; card: Card; gem?: GemDef; tools: ToolCall[]; onChange: (c: Card, followUp?: Card) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [lost, setLost] = useState(false);
   const Icon = icons[card.kind] ?? Send;
 
   async function decide(approve: boolean) {
@@ -105,9 +106,11 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
           {card.status === "declined" ? "Skipped" : card.result}
         </div>
       )}
-      {card.shotId && card.kind === "poster" ? (
+      {card.shotId && lost ? (
+        <p className="small muted">This image was made before Paalam saved images to disk, so it's gone. Ask Argon again to make a new one.</p>
+      ) : card.shotId && card.kind === "poster" ? (
         <div className="poster">
-          <img src={`/api/shots/${card.shotId}`} alt={card.title} />
+          <img src={`/api/shots/${card.shotId}`} alt={card.title} onError={() => setLost(true)} />
           <div className="poster-actions">
             <a className="ghost small-btn" href={`/api/shots/${card.shotId}`} download={`paalam-poster-${card.shotId}`}>
               <Download size={13} /> Download
@@ -129,7 +132,7 @@ export function ActionCard({ runId, card, gem, tools, onChange }: { runId: strin
         </div>
       ) : card.shotId ? (
         <a className="shot" href={`/api/shots/${card.shotId}`} target="_blank" rel="noreferrer" title="Open the full screenshot">
-          <img src={`/api/shots/${card.shotId}`} alt={`Screenshot after: ${card.title}`} loading="lazy" />
+          <img src={`/api/shots/${card.shotId}`} alt={`Screenshot after: ${card.title}`} loading="lazy" onError={() => setLost(true)} />
         </a>
       ) : null}
       {err && <div className="err">{err}</div>}

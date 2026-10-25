@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { DATA_DIR } from "../paths.js";
 import type { Browser, BrowserContext, Page } from "playwright-core";
 import { NavigationBlocked, checkUrl, clipText, publicHost } from "./net.js";
 
@@ -26,22 +28,27 @@ const headful = () => process.env.PAALAM_BROWSER_HEADFUL === "1";
 // Fields Paalam never types into, whatever a model or a payload says.
 const FORBIDDEN_FIELD = /pass(word|code)?|\botp\b|one.?time|cvv|cvc|card.?(no|number)|credit|debit|upi.?pin|\bpin\b|mpin|net.?banking|security.?code|captcha/i;
 
-// ── Screenshots are kept here and served by id, so they never bloat a run or reach a model ──
-const shots = new Map<string, { png: Buffer; type: string; at: number }>();
-export const getShot = (id: string) => shots.get(id);
+// ── Screenshots and posters are saved to disk (DATA_DIR/shots) and served by id, so they
+// survive restarts, never bloat a run, and never reach a model ──
+const SHOTS = join(DATA_DIR, "shots");
+const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg" };
+const TYPE = Object.fromEntries(Object.entries(EXT).map(([t, e]) => [e, t]));
+
+export function getShot(id: string): { png: Buffer; type: string } | undefined {
+  if (!/^[a-f0-9-]{6,40}$/.test(id) || !existsSync(SHOTS)) return;
+  const file = readdirSync(SHOTS).find((f) => f.startsWith(`${id}.`));
+  if (!file) return;
+  return { png: readFileSync(join(SHOTS, file)), type: TYPE[file.split(".").pop()!] ?? "application/octet-stream" };
+}
+
 /** Stores an image (screenshot or poster) and returns its id for /api/shots/:id. */
 export function keepImage(data: Buffer, type: string) {
   const id = randomUUID().slice(0, 12);
-  shots.set(id, { png: data, type, at: Date.now() });
-  for (const [k, v] of shots) if (Date.now() - v.at > 60 * 60 * 1000) shots.delete(k);
+  mkdirSync(SHOTS, { recursive: true });
+  writeFileSync(join(SHOTS, `${id}.${EXT[type] ?? "bin"}`), data);
   return id;
 }
-function keepShot(png: Buffer) {
-  const id = randomUUID().slice(0, 12);
-  shots.set(id, { png, type: "image/jpeg", at: Date.now() });
-  for (const [k, v] of shots) if (Date.now() - v.at > 60 * 60 * 1000) shots.delete(k);
-  return id;
-}
+const keepShot = (jpeg: Buffer) => keepImage(jpeg, "image/jpeg");
 
 // ── One shared browser, one context per task ──
 let browser: Browser | null = null;
