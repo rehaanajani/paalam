@@ -4,6 +4,7 @@ export interface Integration {
   id: string;
   name: string;
   live: boolean;
+  optional?: boolean;
   env: string[];
   fallback?: string;
   uses?: string;

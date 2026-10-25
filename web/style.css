@@ -484,10 +484,11 @@ kbd {
   border-radius: 999px;
   border: 1px solid var(--border-strong);
   background: transparent;
-  padding: 0 8px 0 16px;
-  font-size: 14px;
+  padding: 0 6px 0 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  gap: 8px;
+  gap: 6px;
+  overflow: hidden;
 }
 .connect-apps:hover {
   background: var(--surface);
@@ -496,14 +497,28 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .key-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: 999px;
 }
-.key-status.demo {
+.key-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.key-status.demo,
+.key-status.partial {
   background: var(--warn-bg);
   color: var(--warn);
 }
@@ -2744,4 +2759,56 @@ button.bot-pill:hover {
 .toast span {
   font-size: 13px;
   color: var(--text-2);
+}
+
+/* ---------- Model picker (Gem chats) ---------- */
+.model-picker {
+  position: relative;
+}
+.model-pill {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  gap: 6px;
+}
+.model-pill:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.model-menu {
+  position: absolute;
+  bottom: 38px;
+  left: 0;
+  width: 290px;
+  max-height: 340px;
+  overflow-y: auto;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.model-menu button {
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 9px;
+  text-align: left;
+}
+.model-menu button:hover,
+.model-menu button.on {
+  background: var(--surface-2);
+}
+.model-name {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+.model-name small {
+  font-size: 11px;
+  color: var(--text-3);
 }

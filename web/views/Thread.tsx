@@ -28,7 +28,7 @@ export function ChatFrame({ pill, children, composer, scrollKey }: { pill: React
 }
 
 /** A Bridge: every run sent into one conversation, each drawn as you → Argon → Gems → actions. */
-export function Thread({ threadId, gems, status, pill, placeholder, onSend, onChanged, onNew, newLabel = "Start a new bridge" }: { threadId: string; gems: GemDef[]; status: Status | null; pill: ReactNode; placeholder: string; onSend: Send; onChanged: () => void; onNew?: () => void; newLabel?: string }) {
+export function Thread({ threadId, gems, status, pill, placeholder, onSend, onChanged, onNew, newLabel = "Start a new bridge", composerExtra }: { threadId: string; gems: GemDef[]; status: Status | null; pill: ReactNode; placeholder: string; onSend: Send; onChanged: () => void; onNew?: () => void; newLabel?: string; composerExtra?: ReactNode }) {
   const [runs, setRuns] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const load = () => api<Run[]>(`threads/${threadId}`).then((list) => setRuns(list.map((r) => r.id))).catch(() => setRuns([]));
@@ -52,7 +52,7 @@ export function Thread({ threadId, gems, status, pill, placeholder, onSend, onCh
       scrollKey={runs.length}
       composer={
         <>
-          <Composer busy={busy} onSend={send} placeholder={placeholder} />
+          <Composer busy={busy} onSend={send} placeholder={placeholder} extra={composerExtra} />
           {onNew && (
             <button type="button" className="new-thread" onClick={onNew}>
               <Plus size={13} /> {newLabel}

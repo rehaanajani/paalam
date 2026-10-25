@@ -20,6 +20,7 @@ import { store } from "./store.js";
 import { allIncidents, recordRun, setIncidents } from "./incidents.js";
 import { checkModels, keepWarm } from "./gemini.js";
 import { settings } from "./settings.js";
+import { chatModels } from "./models.js";
 import { addPushSubscription, pushKey, reminderStore, startReminderClock } from "./reminders.js";
 import { gems as gemRegistry } from "./gems/registry.js";
 import { ensureVectors, loadKnowledge } from "./knowledge.js";
@@ -126,6 +127,8 @@ app.post("/api/push/subscribe", (req, res) => {
     res.status(400).json({ error: (e as Error).message });
   }
 });
+
+app.get("/api/models", async (_req, res) => res.json(await chatModels()));
 
 app.get("/api/settings", (_req, res) => res.json({ ...settings.get(), models: { gem: config.gemini.gemModel, argon: config.gemini.argonModel } }));
 app.put("/api/settings", (req, res) => {

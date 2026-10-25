@@ -155,7 +155,9 @@ export function App() {
     const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
     return m < 1 ? "just now" : m < 60 ? `${m} min ago` : new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
-  const live = status?.integrations.filter((i) => i.live).length ?? 0;
+  // Optional extras (Firestore for Cloud Run, Twilio SMS) don't count against "all live".
+  const core = status?.integrations.filter((i) => !i.optional) ?? [];
+  const missing = core.filter((i) => !i.live).length;
   const tip = (label: string, el: ReactNode) => <span title={label}>{el}</span>;
 
   let page: ReactNode;
@@ -292,7 +294,10 @@ export function App() {
             <span className="keys-label">
               <KeyRound size={15} /> Connect keys
             </span>
-            <span className={`key-status ${status?.demo ? "demo" : "live"}`}>{status ? (status.demo ? "Demo" : `${live}/${status.integrations.length} live`) : "…"}</span>
+            <span className={`key-status ${status?.demo ? "demo" : missing ? "partial" : "live"}`}>
+              <i />
+              {status ? (status.demo ? "Demo" : missing ? `${missing} missing` : "All live") : "…"}
+            </span>
           </button>
         </div>
       </aside>

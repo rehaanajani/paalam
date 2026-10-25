@@ -183,6 +183,9 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
   const evidence = run.input.evidence.filter((e) => fragment.evidence.includes(e.id));
   const ctx: ToolContext = { evidence: run.input.evidence, near: run.input.near ?? { lat: config.city.lat, lng: config.city.lng }, usage: run.usage, threadId: run.threadId };
   const system = gemSystem(gem);
+  // A model picked for this Gem in its chat's model picker, if any.
+  const chosenModel = settings.get().gemModels?.[gem.id];
+  if (chosenModel) audit(gem.id, `Using ${chosenModel} (picked for this Gem)`);
   const others = run.fragments.filter((f) => f.id !== fragment.id).map((f) => `- ${f.title} → ${gems.get(f.gemId)?.name ?? f.gemId}`);
   const brief = `Problem from Argon: ${fragment.title} (${fragment.urgency})\n${fragment.summary}\n${
     others.length ? `\nOther problems in this message went to other Gems; do NOT handle them or propose their actions:\n${others.join("\n")}\n` : ""
@@ -196,6 +199,7 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
     : await askJSON<PlanOut>({
         tier: gem.model,
         step: `${gem.id}:plan`,
+        ...(chosenModel ? { model: chosenModel } : {}),
         usage: run.usage,
         system,
         evidence,
@@ -265,6 +269,7 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
     act = await askJSON<ActOut>({
       tier: gem.model,
       step: `${gem.id}:act`,
+      ...(chosenModel ? { model: chosenModel } : {}),
       usage: run.usage,
       system,
       // Media was already read in pass 1; its facts carry forward, so pass 2 is text only.

@@ -3,6 +3,7 @@ import { Settings2 } from "lucide-react";
 import { Gem } from "../components/Gem";
 import { Composer } from "../components/Composer";
 import { ChatFrame, Thread, gemStyle, type Send } from "./Thread";
+import { ModelPicker } from "../components/ModelPicker";
 import type { GemDef, Status, ToolInfo } from "../types";
 
 /** One Gem's own tab: talk to the specialist directly, skipping Argon's split. */
@@ -39,10 +40,10 @@ export function GemChat({ gem, gems, tools, status, threadId, busy, onSend, onCh
   );
   const placeholder = `Message ${gem.name}`;
 
-  if (threadId) return <Thread key={threadId} threadId={threadId} gems={gems} status={status} pill={pill} placeholder={placeholder} onSend={onSend} onChanged={onChanged} onNew={onNew} newLabel={`New chat with ${gem.name}`} />;
+  if (threadId) return <Thread key={threadId} threadId={threadId} gems={gems} status={status} pill={pill} placeholder={placeholder} onSend={onSend} onChanged={onChanged} onNew={onNew} newLabel={`New chat with ${gem.name}`} composerExtra={<ModelPicker gemId={gem.id} tier={gem.model} />} />;
 
   return (
-    <ChatFrame pill={pill} composer={<Composer busy={busy} onSend={onSend} placeholder={placeholder} />}>
+    <ChatFrame pill={pill} composer={<Composer busy={busy} onSend={onSend} placeholder={placeholder} extra={<ModelPicker gemId={gem.id} tier={gem.model} />} />}>
       <div className="welcome" style={gemStyle(gem)}>
         <Gem color={gem.color} size={96} name={gem.id} mood="idle" />
         <h1>{gem.name}</h1>

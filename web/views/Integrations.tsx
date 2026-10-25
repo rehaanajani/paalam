@@ -31,7 +31,7 @@ export function Integrations({ status, tools }: { status: Status | null; tools: 
             <div className="int-head">
               {i.live ? <CircleCheck size={18} className="ok" /> : <CircleDashed size={18} />}
               <h3>{i.name}</h3>
-              <span className={`live-pill ${i.live ? "live" : "demo"}`}>{i.live ? "LIVE" : "DEMO"}</span>
+              <span className={`live-pill ${i.live ? "live" : "demo"}`}>{i.live ? "LIVE" : i.optional ? "OPTIONAL" : "DEMO"}</span>
             </div>
             <div className="env">
               {i.env.map((e) => (

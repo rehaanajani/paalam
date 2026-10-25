@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ArrowUp, FileText, Image as ImageIcon, LocateFixed, Mic, Plus, Square, X, Music } from "lucide-react";
 import { startRecording } from "../api";
 
 type Recording = Awaited<ReturnType<typeof startRecording>>;
 
 /** The chaos pane: type, talk, drop photos and documents, all at once. */
-export function Composer({ busy, onSend, placeholder }: { busy: boolean; onSend: (text: string, files: File[], near?: { lat: number; lng: number }) => void; placeholder?: string }) {
+export function Composer({ busy, onSend, placeholder, extra }: { busy: boolean; onSend: (text: string, files: File[], near?: { lat: number; lng: number }) => void; placeholder?: string; extra?: ReactNode }) {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [rec, setRec] = useState<Recording | null>(null);
@@ -131,6 +131,7 @@ export function Composer({ busy, onSend, placeholder }: { busy: boolean; onSend:
         <button type="button" className={`composer-mic ${near ? "on-loc" : ""}`} title="Share my location" onClick={locate} disabled={busy || locating}>
           <LocateFixed size={17} />
         </button>
+        {extra}
         {err && <span className="composer-err">{err}</span>}
         <span className="grow" />
         <button type="button" className={`composer-mic ${rec ? "on" : ""}`} title={rec ? "Stop recording" : "Record a voice note"} onClick={toggleMic} disabled={busy}>

@@ -47,8 +47,24 @@ export async function askJSON<T>(opts: {
   schema: object;
   evidence?: Evidence[];
   temperature?: number;
+  /** a specific model chosen for this Gem; falls back to the tier's model if it fails */
+  model?: string;
 }): Promise<T> {
-  const model = modelFor(opts.tier);
+  const fallback = modelFor(opts.tier);
+  if (!opts.model || opts.model === fallback) return askJSONWith<T>(fallback, opts);
+  try {
+    return await askJSONWith<T>(opts.model, opts);
+  } catch (e) {
+    // A picked model that can't do structured output (or is unavailable) shouldn't break the Gem.
+    console.warn(`${opts.step}: ${opts.model} failed (${(e as Error).message.slice(0, 120)}), using ${fallback}`);
+    return askJSONWith<T>(fallback, opts);
+  }
+}
+
+async function askJSONWith<T>(
+  model: string,
+  opts: { tier: ModelTier; step: string; usage: Usage; system: string; prompt: string; schema: object; evidence?: Evidence[]; temperature?: number },
+): Promise<T> {
   const b = opts.tier === "argon" ? budget.argon : budget.gem;
   const base: GenerateContentConfig = {
     systemInstruction: opts.system,

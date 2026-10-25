@@ -6,21 +6,26 @@ Paalam is a Gemini-powered bridge between people in a crisis and the systems tha
 
 Built for PromptWars x ACM SRM (Societal Benefit). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Run it
+## Install (one command)
 
-You need [Node.js 20+](https://nodejs.org) and [git](https://git-scm.com). Then one line:
+**Mac / Linux**: paste in Terminal:
+```bash
+curl -fsSL https://raw.githubusercontent.com/rehaanajani/paalam/main/scripts/install.sh | bash
+```
 
-**Mac / Linux**
+**Windows**: paste in PowerShell:
+```powershell
+irm https://raw.githubusercontent.com/rehaanajani/paalam/main/scripts/install.ps1 | iex
+```
+
+It checks for [Node.js 20+](https://nodejs.org) and [git](https://git-scm.com) (and tells you what to install if they're missing), downloads Paalam into a `paalam` folder in your home folder, sets it up and opens it at **http://localhost:8080**. Run the same command again to update.
+
+Prefer doing it by hand?
 ```bash
 git clone https://github.com/rehaanajani/paalam.git && cd paalam && npm run setup && npm start
 ```
 
-**Windows (PowerShell)**
-```powershell
-git clone https://github.com/rehaanajani/paalam.git; cd paalam; npm run setup; npm start
-```
-
-Open **http://localhost:8080**. Want a desktop window instead? Run `npm run desktop` in the same folder.
+Want a desktop window instead? Run `npm run desktop` in the same folder.
 
 To use your own Google Cloud keys, copy `.env.example` to `.env` and follow [docs/KEYS.md](docs/KEYS.md).
 

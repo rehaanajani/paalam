@@ -74,7 +74,7 @@ export function integrationStatus() {
     { id: "dlp", name: "Cloud DLP: masking", live: live.dlp, env: ["GOOGLE_CLOUD_PROJECT", "Google login"], fallback: "Local Aadhaar / phone / PAN masking" },
     { id: "health", name: "Healthcare Natural Language API", live: live.serviceAccount, env: ["GOOGLE_CLOUD_PROJECT", "Google login"], uses: "Standard names for medicines and conditions in prescriptions" },
     { id: "armor", name: "Model Armor: prompt-injection shield", live: live.modelArmor, env: ["MODEL_ARMOR_TEMPLATE", "Google login"], uses: "Screens forwards and web pages for hidden instructions aimed at the AI", fallback: "Local pattern screening" },
-    { id: "firestore", name: "Firestore: saved Bridges", live: live.firestore, env: ["PERSIST=firestore", "Google login"], fallback: config.persist === "memory" ? "Not saved" : "Saved to data/ on this machine" },
-    { id: "sms", name: "SMS / WhatsApp (Twilio)", live: live.sms, env: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER"], fallback: "Simulated send, logged in the audit trail" },
+    { id: "firestore", optional: true, name: "Firestore: saved Bridges (Cloud Run only)", live: live.firestore, env: ["PERSIST=firestore", "Google login"], fallback: config.persist === "memory" ? "Not saved" : "Saved to data/ on this machine" },
+    { id: "sms", optional: true, name: "SMS / WhatsApp (Twilio)", live: live.sms, env: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER"], fallback: "Simulated send, logged in the audit trail" },
   ];
 }
