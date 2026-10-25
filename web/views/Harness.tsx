@@ -53,7 +53,7 @@ export function Harness({ gems }: { gems: GemDef[] }) {
             </div>
             <div>
               <dt>Routing downshift</dt>
-              <dd>Text-only input under {h.budget.downshiftChars} chars is routed by the fast model</dd>
+              <dd>{h.budget.downshiftChars ? `Text-only input under ${h.budget.downshiftChars} chars is routed by the fast model` : "Off: Argon routes everything"}</dd>
             </div>
             <div>
               <dt>Tool results</dt>

@@ -11,7 +11,7 @@ export const config = {
     location: env("GOOGLE_CLOUD_LOCATION") || "global",
     argonModel: env("ARGON_MODEL") || "gemini-4-argon",
     gemModel: env("GEM_MODEL") || "gemini-3.6-flash",
-    imageModel: env("IMAGE_MODEL") || "gemini-3.1-flash-image-preview",
+    imageModel: env("IMAGE_MODEL") || "gemini-3.1-flash-image",
     embedModel: env("EMBED_MODEL") || "gemini-embedding-001",
   },
   modelArmor: {

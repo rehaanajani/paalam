@@ -19,7 +19,7 @@ import { allowPractice } from "./browser/net.js";
 import { store } from "./store.js";
 import { allIncidents, recordRun, setIncidents } from "./incidents.js";
 import { checkModels } from "./gemini.js";
-import { loadKnowledge } from "./knowledge.js";
+import { ensureVectors, loadKnowledge } from "./knowledge.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
 const app = express();
@@ -242,6 +242,7 @@ if (existsSync(dist)) {
 
 await loadPlugins();
 loadKnowledge();
+void ensureVectors().catch((e) => console.warn("Knowledge indexing failed:", (e as Error).message.slice(0, 120)));
 for (const r of await store.loadRuns()) {
   // A run cut off by a restart can't resume; mark it rather than leave it spinning.
   if (!["done", "error"].includes(r.stage)) Object.assign(r, { stage: "error", error: "Interrupted by a server restart. Send it again." });

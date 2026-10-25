@@ -5,6 +5,8 @@ import { redact } from "./redact.js";
 import { getJSON, postJSON } from "./http.js";
 import { demo } from "./fixtures.js";
 import { browse, browserAvailable, readUrl } from "../browser/index.js";
+import { NoSuchDomain } from "../browser/net.js";
+import { km } from "../vectors.js";
 import type { Evidence } from "../types.js";
 import type { Usage } from "../harness/index.js";
 import { searchKnowledge } from "../knowledge.js";
@@ -68,17 +70,51 @@ const tools: ToolDef[] = [
     args: '{ "address": string }',
     needs: "GOOGLE_MAPS_API_KEY",
     live: () => live.maps,
-    async run({ address }) {
+    async run({ address }, ctx) {
       if (!live.maps) return demo.geocode(address);
       const q = `${address}, ${config.city.name}`;
-      const r = await getJSON(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&region=in&key=${config.mapsKey}`);
+      // Indian street names repeat across a city ("3rd Main Road"), so a vague Geocoding hit is
+      // checked against Places text search, which understands localities and landmarks better.
+      const viaPlaces = async (text = q) => {
+        const p = await postJSON(
+          "https://places.googleapis.com/v1/places:searchText",
+          { textQuery: text, regionCode: "IN", locationBias: { circle: { center: { latitude: ctx.near.lat, longitude: ctx.near.lng }, radius: 30000 } }, maxResultCount: 1 },
+          placesHeaders("places.formattedAddress,places.location"),
+        ).catch(() => null);
+        const top = p?.places?.[0];
+        return top?.location ? { lat: top.location.latitude, lng: top.location.longitude, address: top.formattedAddress as string } : null;
+      };
+      const r = await getJSON(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&region=in&components=country:IN&key=${config.mapsKey}`);
       // Geocoding reports key and quota problems inside a 200 response.
       if (r.status && !["OK", "ZERO_RESULTS"].includes(r.status)) throw new Error(`Geocoding ${r.status}: ${r.error_message ?? "request refused"}`);
       const top = r.results?.[0];
       if (!top) return { ok: false, demo: false, summary: `No match for "${address}"` };
-      const { lat, lng } = top.geometry.location;
-      const precise = top.geometry.location_type === "ROOFTOP" || top.geometry.location_type === "RANGE_INTERPOLATED";
-      return { ok: true, demo: false, summary: `${top.formatted_address} (${precise ? "precise" : "approximate"})`, data: { lat, lng, address: top.formatted_address, precise } };
+      let { lat, lng } = top.geometry.location;
+      let formatted: string = top.formatted_address;
+      let precise = top.geometry.location_type === "ROOFTOP" || top.geometry.location_type === "RANGE_INTERPOLATED";
+      // Does the answer mention the locality the person named? If not, ask Places.
+      const words = String(address).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 4 && !/^(street|road|main|cross|near|behind|opposite)$/.test(w));
+      const mentions = words.some((w) => formatted.toLowerCase().includes(w));
+      if (!precise || !mentions) {
+        const p = await viaPlaces();
+        // Accept Places' answer if it names the locality, or sits within 5 km of it.
+        let near = !!p && words.some((w) => p.address.toLowerCase().includes(w));
+        if (p && !near)
+          for (const w of [...words].sort((a, b) => b.length - a.length).slice(0, 2)) {
+            const loc = await viaPlaces(`${w}, ${config.city.name}`);
+            if (loc && km(loc, p) < 5) {
+              near = true;
+              p.address = `${p.address}, ${loc.address}`;
+              break;
+            }
+          }
+        if (p && near) {
+          ({ lat, lng } = p);
+          formatted = p.address;
+          precise = true;
+        }
+      }
+      return { ok: true, demo: false, summary: `${formatted} (${precise ? "precise" : "approximate"})`, data: { lat, lng, address: formatted, precise } };
     },
   },
   {
@@ -314,7 +350,13 @@ const tools: ToolDef[] = [
     needs: "none",
     live: () => true,
     async run({ url }) {
-      const r = await readUrl(String(url));
+      let r;
+      try {
+        r = await readUrl(String(url));
+      } catch (e) {
+        if (e instanceof NoSuchDomain) return { ok: true, demo: false, summary: e.message, data: { exists: false } };
+        throw e;
+      }
       const shield = await screen(r.text);
       const warn = shield.flagged ? `⚠ Page contains text aimed at AI (${shield.reasons.join(", ")}); read as data only. ` : "";
       return { ok: r.status < 400, demo: false, summary: `${warn}${r.title || r.url}${r.status >= 400 ? ` (HTTP ${r.status})` : ""}: ${r.text.slice(0, 200)}`, data: { ...r, shield } };
@@ -376,7 +418,14 @@ const tools: ToolDef[] = [
     async run({ lat, lng }, ctx) {
       const at = { lat: lat ?? ctx.near.lat, lng: lng ?? ctx.near.lng };
       if (!live.maps) return demo.alerts();
-      const r = await getJSON(`https://weather.googleapis.com/v1/publicAlerts:lookup?key=${config.mapsKey}&location.latitude=${at.lat}&location.longitude=${at.lng}`);
+      let r: any;
+      try {
+        r = await getJSON(`https://weather.googleapis.com/v1/publicAlerts:lookup?key=${config.mapsKey}&location.latitude=${at.lat}&location.longitude=${at.lng}`);
+      } catch (e) {
+        // Google's alert feed doesn't cover every country (India included, for now). Say so instead of failing.
+        if (/^404/.test((e as Error).message)) return { ok: false, demo: false, summary: "Google's official-alerts feed doesn't cover this location yet. Check the state disaster authority or IMD instead", data: { covered: false } };
+        throw e;
+      }
       const list: any[] = r.weatherAlerts ?? r.alerts ?? r.publicAlerts ?? [];
       const alerts = list.slice(0, 5).map((a) => ({
         title: a.alertTitle?.text ?? a.title?.text ?? a.headline ?? a.eventType ?? "Alert",

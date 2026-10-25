@@ -162,7 +162,10 @@ async function runGem(run: Run, fragment: Fragment, emit: Emit, audit: Audit, pa
   const evidence = run.input.evidence.filter((e) => fragment.evidence.includes(e.id));
   const ctx: ToolContext = { evidence: run.input.evidence, near: run.input.near ?? { lat: config.city.lat, lng: config.city.lng }, usage: run.usage, threadId: run.threadId };
   const system = gemSystem(gem);
-  const brief = `Problem from Argon: ${fragment.title} (${fragment.urgency})\n${fragment.summary}\nPerson's message:\n"""${run.input.text}"""`;
+  const others = run.fragments.filter((f) => f.id !== fragment.id).map((f) => `- ${f.title} → ${gems.get(f.gemId)?.name ?? f.gemId}`);
+  const brief = `Problem from Argon: ${fragment.title} (${fragment.urgency})\n${fragment.summary}\n${
+    others.length ? `\nOther problems in this message went to other Gems; do NOT handle them or propose their actions:\n${others.join("\n")}\n` : ""
+  }\nPerson's message (cite it as MSG):\n"""${run.input.text}"""`;
 
   // a. Plan: which tools would verify the facts or find help
   await pace(500);

@@ -96,7 +96,7 @@ export async function groundedSearch(question: string, usage?: Usage) {
   const res = await ai().models.generateContent({
     model: config.gemini.gemModel,
     contents: `${question}\nAnswer in at most 2 sentences.`,
-    config: { tools: [{ googleSearch: {} }], temperature: 0, maxOutputTokens: 300 },
+    config: { tools: [{ googleSearch: {} }], temperature: 0, maxOutputTokens: 400, ...(unsupported.has(`${config.gemini.gemModel}:thinking`) ? {} : { thinkingConfig: { thinkingBudget: 0 } }) },
   });
   if (usage)
     record(usage, {
@@ -150,7 +150,9 @@ export async function checkModels() {
   await Promise.all(
     Object.entries(models).map(async ([k, model]) => {
       try {
-        await ai().models.get({ model });
+        // Embedding models don't support a metadata lookup on Vertex, so test them by embedding.
+        if (k === "embed") await embed(["ok"]);
+        else await ai().models.get({ model });
         modelCheck[k] = { model, ok: true };
       } catch (e) {
         modelCheck[k] = { model, ok: false, error: (e as Error).message.slice(0, 160) };

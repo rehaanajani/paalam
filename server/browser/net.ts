@@ -40,6 +40,8 @@ export function privateAddress(address: string): boolean {
 const LOCAL_NAMES = /(^|\.)(localhost|local|internal|intranet|lan|home|corp|ts\.net|home\.arpa)$/i;
 
 export class NavigationBlocked extends Error {}
+/** The domain has no DNS record at all: often a scam domain that's new, fake or already taken down. */
+export class NoSuchDomain extends NavigationBlocked {}
 
 /** Paalam's own practice pages are the one local address the browser may open. */
 let practiceHost = "";
@@ -76,7 +78,8 @@ export async function publicHost(url: URL): Promise<boolean> {
     try {
       const all = await lookup(host, { all: true, verbatim: true });
       ok = all.length > 0 && !all.some((a) => privateAddress(a.address));
-    } catch {
+    } catch (e) {
+      if (/ENOTFOUND|ENODATA/.test(String((e as any)?.code))) throw new NoSuchDomain(`${host} doesn't exist (no DNS record). Scam domains are often new, fake or already taken down`);
       ok = false;
     }
   verdicts.set(host, ok);

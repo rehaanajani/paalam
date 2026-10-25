@@ -12,7 +12,8 @@ import type { GemResult, Run } from "./types.js";
  */
 export async function enforceTrust(r: GemResult, run: Run): Promise<string[]> {
   const log: string[] = [];
-  const evidenceIds = new Set(run.input.evidence.map((e) => e.id));
+  // "MSG" is the person's typed message, which every Gem may cite.
+  const evidenceIds = new Set([...run.input.evidence.map((e) => e.id), ...(run.input.text ? ["MSG"] : [])]);
   const calls = new Map(r.tools.map((t) => [t.id, t]));
   const at = new Date().toISOString();
 

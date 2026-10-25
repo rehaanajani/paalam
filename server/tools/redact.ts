@@ -10,8 +10,25 @@ const local: [string, RegExp, (m: string) => string][] = [
   ["OTP", /\b(?:otp|OTP)[:\s]*\d{4,8}\b/g, () => "OTP ••••"],
 ];
 
-/** Cloud DLP when the service account is set, otherwise the local Indian-ID patterns. */
+function localRedact(text: string) {
+  const found: string[] = [];
+  let out = text;
+  for (const [name, re, mask] of local) {
+    out = out.replace(re, (m) => {
+      found.push(name);
+      return mask(m);
+    });
+  }
+  return { text: out, found: [...new Set(found)] };
+}
+
+/**
+ * Indian ID patterns always run first (Cloud DLP misses Aadhaar and Indian mobile
+ * formats); Cloud DLP then runs on top, when available, for names, emails and the rest.
+ */
 export async function redact(text: string): Promise<{ text: string; found: string[]; engine: string }> {
+  const first = localRedact(text);
+  text = first.text;
   if (live.dlp) {
     try {
       const infoTypes = ["PHONE_NUMBER", "EMAIL_ADDRESS", "CREDIT_CARD_NUMBER", "INDIA_AADHAAR_INDIVIDUAL", "INDIA_PAN_INDIVIDUAL", "PERSON_NAME"].map((name) => ({ name }));
@@ -25,18 +42,10 @@ export async function redact(text: string): Promise<{ text: string; found: strin
         await bearer(),
       );
       const found = [...new Set<string>((r.overview?.transformationSummaries ?? []).filter((s: any) => s.transformedBytes > 0).map((s: any) => s.infoType?.name))];
-      return { text: r.item?.value ?? text, found, engine: "Cloud DLP" };
+      return { text: r.item?.value ?? text, found: [...new Set([...first.found, ...found])], engine: "local patterns + Cloud DLP" };
     } catch (e) {
       console.warn("DLP failed, using local redaction:", (e as Error).message);
     }
   }
-  const found: string[] = [];
-  let out = text;
-  for (const [name, re, mask] of local) {
-    out = out.replace(re, (m) => {
-      found.push(name);
-      return mask(m);
-    });
-  }
-  return { text: out, found: [...new Set(found)], engine: "local patterns" };
+  return { text, found: first.found, engine: "local patterns" };
 }

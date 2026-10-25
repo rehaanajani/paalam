@@ -110,7 +110,7 @@ export const budget = {
     media: "MEDIA_RESOLUTION_MEDIUM" as const, // reading prescriptions needs detail
   },
   /** Short text-only input is routed by the fast model instead of Argon's. */
-  downshiftChars: num("ROUTER_DOWNSHIFT_CHARS", 600),
+  downshiftChars: num("ROUTER_DOWNSHIFT_CHARS", 0),
   /** Tool data passed back to a Gem is trimmed to this many characters per call. */
   toolDataChars: num("TOOL_DATA_CHARS", 600),
 };

@@ -24,6 +24,7 @@ const DIRS = [join(process.cwd(), "knowledge"), join(process.cwd(), "plugins", "
 const CACHE = join(process.cwd(), "data", "knowledge-vectors.json");
 let chunks: Chunk[] = [];
 let embedded = false;
+let indexing: Promise<void> | null = null;
 
 function chunkFile(path: string): Chunk[] {
   const raw = readFileSync(path, "utf8");
@@ -58,8 +59,14 @@ export function loadKnowledge() {
   return chunks.length;
 }
 
-async function ensureVectors() {
-  if (embedded || !live.gemini || !chunks.length) return;
+/** One shared indexing job, so Gems searching at the same moment don't each embed everything. */
+export function ensureVectors() {
+  if (embedded || !live.gemini || !chunks.length) return Promise.resolve();
+  indexing ??= buildVectors().finally(() => (indexing = null));
+  return indexing;
+}
+
+async function buildVectors() {
   let cache: Record<string, number[]> = {};
   try {
     if (existsSync(CACHE)) cache = JSON.parse(readFileSync(CACHE, "utf8"));
