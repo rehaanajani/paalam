@@ -26,6 +26,13 @@ To use your own Google Cloud keys, copy `.env.example` to `.env` and follow [doc
 
 For development with hot reload: `npm run dev` (web on :5173, API on :8080).
 
+## Desktop app (macOS)
+
+- `npm run desktop` opens Paalam in its own window. It starts its own server in the background, so there's nothing else to run.
+- `npm run install:mac` builds a double-clickable `Paalam.app` with the Argon icon and shows it in Finder: drag it into Applications (choose **Replace** when updating).
+- The app never contains keys or data. It reads keys from `~/Library/Application Support/Paalam/.env` and keeps Bridges in `~/Library/Application Support/Paalam/data`, so it can be shared safely. Logs: `~/Library/Logs/Paalam/server.log`.
+- It's the same code as the website: a change to `web/` or `server/` reaches both.
+
 **No keys yet?** Everything still works. Click *Try it: a Chennai family's flood-night WhatsApp*. Gemini's answers are scripted for that one scenario, but every tool really runs: add a Maps key and the places, routes and weather become live even in demo mode. Anything on sample data is marked **DEMO** in the UI.
 
 ## What's where
