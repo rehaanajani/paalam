@@ -36,10 +36,13 @@ export async function screen(text: string): Promise<Screening> {
         await bearer(),
       );
       const res = r.sanitizationResult ?? {};
+      const flagged = res.filterMatchState === "MATCH_FOUND";
+      // "NO_MATCH_FOUND" contains "MATCH_FOUND", so match the exact state value.
+      const names: Record<string, string> = { pi_and_jailbreak: "prompt injection or jailbreak", malicious_uris: "malicious link", rai: "harmful content", csam: "child safety", sdp: "sensitive data" };
       const hits = Object.entries(res.filterResults ?? {})
-        .filter(([, v]) => JSON.stringify(v).includes("MATCH_FOUND"))
-        .map(([k]) => k.replace(/_/g, " "));
-      return { flagged: res.filterMatchState === "MATCH_FOUND", reasons: hits.length ? hits : res.filterMatchState === "MATCH_FOUND" ? ["Model Armor match"] : [], engine: "Model Armor" };
+        .filter(([, v]) => /"matchState":"MATCH_FOUND"/.test(JSON.stringify(v)))
+        .map(([k]) => names[k] ?? k.replace(/_/g, " "));
+      return { flagged, reasons: flagged ? (hits.length ? hits : ["Model Armor match"]) : [], engine: "Model Armor" };
     } catch (e) {
       console.warn("Model Armor failed, using local patterns:", (e as Error).message.slice(0, 160));
     }
