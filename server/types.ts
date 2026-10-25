@@ -168,6 +168,8 @@ export interface Run {
     text: string;
     evidence: Evidence[];
     near?: { lat: number; lng: number };
+    /** Simple mode: an elder speaking, so replies are short, calm and read aloud */
+    simple?: boolean;
     /** the person's time zone, for reminders */
     tz?: string;
     /** what was said earlier in this Bridge, condensed, so Argon and the Gems remember */

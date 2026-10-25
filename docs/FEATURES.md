@@ -10,6 +10,8 @@ Everything below works today unless it says otherwise. "Live" means it runs agai
 | **Voice notes** | Recorded in the browser as small 16 kHz WAV; Gemini listens to it directly | Mic button in the composer |
 | **Photos and documents** | Gemini reads prescriptions, notices and photos; photo metadata (date, GPS) is read first | Attach a prescription photo |
 | **Casual chat** | Greetings and general questions get a direct reply from Argon, with no Gems involved | "hi", "what's the capital of France?" |
+| **Simple mode, for elders** | One huge talk button, answers in large type **read aloud in Tamil, English or Hindi**, a 112 button and a family-call button always on screen. Replies start with one calm sentence and give at most three steps. Turn on in Settings → General, or send someone the link `…/?simple` | Settings → General → Simple mode |
+| **Telegram** | Message the Paalam bot with text, a voice note, a photo or a PDF; each chat is its own Bridge. `/simple` gives short answers plus a voice reply. Set `TELEGRAM_BOT_TOKEN` ([KEYS.md](KEYS.md)) | Send the bot a voice note |
 
 ## 2. Argon, Gems and Bridges
 
@@ -45,7 +47,7 @@ Each Gem picks the simplest shape that helps:
 | Check | Service |
 |---|---|
 | Location from messy addresses ("Vijayanagar 3rd main road, Velachery") | Geocoding, double-checked with Places by distance |
-| Is it actually raining / any official alert? | Weather API, public alerts (Google doesn't cover India's alerts yet; it says so) |
+| Is it actually raining / any official alert? | Weather API + **NDMA SACHET** (the official IMD, CWC and state disaster alerts for India, matched to your district) |
 | Is this photo old or viral? | Photo metadata + **Cloud Vision reverse image search** |
 | Is this news/scheme real? | **Google Search grounding** with sources |
 | Is this link a scam? | Safe Browsing + Indian scam patterns + "this domain doesn't exist" |

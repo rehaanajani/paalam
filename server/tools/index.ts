@@ -7,6 +7,7 @@ import { demo } from "./fixtures.js";
 import { browse, browserAvailable, readUrl } from "../browser/index.js";
 import { NoSuchDomain } from "../browser/net.js";
 import { km } from "../vectors.js";
+import { officialAlerts } from "./sachet.js";
 import type { Evidence } from "../types.js";
 import type { Usage } from "../harness/index.js";
 import { searchKnowledge } from "../knowledge.js";
@@ -20,6 +21,8 @@ export interface ToolContext {
   near: { lat: number; lng: number };
   usage: Usage;
   threadId?: string;
+  /** the best-known address for this run, set by geocode */
+  place?: string;
 }
 
 export interface ToolOutput {
@@ -114,6 +117,7 @@ const tools: ToolDef[] = [
           precise = true;
         }
       }
+      ctx.place = formatted;
       return { ok: true, demo: false, summary: `${formatted} (${precise ? "precise" : "approximate"})`, data: { lat, lng, address: formatted, precise } };
     },
   },
@@ -435,6 +439,24 @@ const tools: ToolDef[] = [
         until: a.expirationTime ?? a.endTime ?? "",
       }));
       return { ok: true, demo: false, summary: alerts.length ? alerts.map((a) => `${a.title}${a.severity ? ` (${a.severity})` : ""}${a.source ? `, ${a.source}` : ""}`).join("; ") : "No official weather alerts in force here", data: { alerts } };
+    },
+  },
+  {
+    id: "official_alerts",
+    name: "NDMA SACHET: official alerts (India)",
+    group: "Verify",
+    description: "Official disaster warnings in force from IMD, CWC and state disaster authorities (heavy rain, cyclone, flood, heat, thunderstorm) for the person's district and state. Use to confirm or rule out 'red alert' claims in India.",
+    args: '{ "place"?: string, "state"?: string }',
+    needs: "none (public NDMA feed)",
+    live: () => true,
+    async run({ place, state }, ctx) {
+      const where = String(place || ctx.place || config.city.name);
+      const st = String(state || (/tamil nadu/i.test(where) ? "Tamil Nadu" : config.city.state));
+      const r = await officialAlerts(where, st);
+      const line = (a: (typeof r.here)[number]) => `${a.event || "Alert"} (${a.severity || "?"}) by ${a.issuer}: ${a.headline.slice(0, 160)}`;
+      if (r.here.length) return { ok: true, demo: false, summary: `${r.here.length} official alert(s) for this area. ${r.here.slice(0, 2).map(line).join(" | ")}`, data: r };
+      if (r.elsewhereInState.length) return { ok: true, demo: false, summary: `No official alert names this area right now; ${r.elsewhereInState.length} elsewhere in ${st}, e.g. ${line(r.elsewhereInState[0]!)}`, data: r };
+      return { ok: true, demo: false, summary: `No official alerts in force for ${st} (checked ${r.checked} current alerts)`, data: r };
     },
   },
   {

@@ -66,7 +66,7 @@ export const scenario = {
       toolCalls: [
         { tool: "geocode", argsJson: JSON.stringify({ address: "Vijayanagar 3rd Main Road, Velachery" }), why: "pin the house" },
         { tool: "weather", argsJson: "{}", why: "confirm heavy rain right there" },
-        { tool: "weather_alerts", argsJson: "{}", why: "any official alert in force" },
+        { tool: "official_alerts", argsJson: "{\"place\":\"Velachery, Chennai\"}", why: "IMD / state alerts in force (NDMA SACHET)" },
         { tool: "reverse_image_search", argsJson: JSON.stringify({ evidenceId: "E2" }), why: "is the street photo new" },
         { tool: "similar_reports", argsJson: JSON.stringify({ text: "Family trapped by rising flood water, Vijayanagar 3rd Main Road, Velachery" }), why: "same house already reported?" },
         { tool: "search_web", argsJson: JSON.stringify({ question: "Is there flooding in Velachery Chennai right now?" }), why: "confirm reported flooding" },
@@ -112,7 +112,7 @@ export const scenario = {
           { field: "House number", value: "Not given", status: "unknown" as const, sources: [], verification: "unverified" as const, note: "Ask the family or use their live location." },
           { field: "Water level", value: "Knee-deep inside the house, rising", status: "reported" as const, sources: ["E1", "E2"], verification: "unverified" as const },
           { field: "Rain right now", value: wx?.summary ?? "Unknown", status: "inferred" as const, sources: [id("weather")], verification: "verified" as const },
-          { field: "Official alert", value: find(calls, "weather_alerts")?.summary ?? "Unknown", status: "inferred" as const, sources: [id("weather_alerts")], verification: find(calls, "weather_alerts") ? ("verified" as const) : ("unverified" as const) },
+          { field: "Official alert", value: find(calls, "official_alerts")?.summary ?? "Unknown", status: "inferred" as const, sources: [id("official_alerts")], verification: find(calls, "official_alerts") ? ("verified" as const) : ("unverified" as const) },
           { field: "Street photo", value: find(calls, "reverse_image_search")?.summary ?? "Not checked", status: "inferred" as const, sources: ["E2", id("reverse_image_search")], verification: find(calls, "reverse_image_search") ? ("verified" as const) : ("unverified" as const) },
           { field: "Earlier reports", value: find(calls, "similar_reports")?.summary ?? "Not checked", status: "inferred" as const, sources: [id("similar_reports")], verification: find(calls, "similar_reports") ? ("verified" as const) : ("unverified" as const) },
           { field: "Area flooding", value: news?.summary ?? "Unknown", status: "inferred" as const, sources: [id("search_web")], verification: "verified" as const },

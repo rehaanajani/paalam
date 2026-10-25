@@ -29,6 +29,9 @@ export const config = {
   serviceAccount: env("GOOGLE_APPLICATION_CREDENTIALS"),
   mapsKey: env("GOOGLE_MAPS_API_KEY"),
   cloudKey: env("GOOGLE_CLOUD_API_KEY") || env("GOOGLE_MAPS_API_KEY"),
+  telegram: { token: env("TELEGRAM_BOT_TOKEN") },
+  /** where this Paalam is reachable from outside, for links in Telegram replies */
+  publicUrl: env("PUBLIC_URL").replace(/\/$/, ""),
   twilio: {
     sid: env("TWILIO_ACCOUNT_SID"),
     token: env("TWILIO_AUTH_TOKEN"),
@@ -41,6 +44,7 @@ export const config = {
   },
   city: {
     name: env("DEFAULT_CITY") || "Chennai",
+    state: env("DEFAULT_STATE") || "Tamil Nadu",
     lat: Number(env("DEFAULT_LAT") || 13.0827),
     lng: Number(env("DEFAULT_LNG") || 80.2707),
   },
@@ -75,6 +79,7 @@ export function integrationStatus() {
     { id: "health", name: "Healthcare Natural Language API", live: live.serviceAccount, env: ["GOOGLE_CLOUD_PROJECT", "Google login"], uses: "Standard names for medicines and conditions in prescriptions" },
     { id: "armor", name: "Model Armor: prompt-injection shield", live: live.modelArmor, env: ["MODEL_ARMOR_TEMPLATE", "Google login"], uses: "Screens forwards and web pages for hidden instructions aimed at the AI", fallback: "Local pattern screening" },
     { id: "firestore", optional: true, name: "Firestore: saved Bridges (Cloud Run only)", live: live.firestore, env: ["PERSIST=firestore", "Google login"], fallback: config.persist === "memory" ? "Not saved" : "Saved to data/ on this machine" },
+    { id: "telegram", optional: true, name: "Telegram bot", live: !!config.telegram.token, env: ["TELEGRAM_BOT_TOKEN", "PUBLIC_URL (optional)"], uses: "People message Paalam on Telegram: text, voice notes, photos; /simple for spoken answers", fallback: "Off" },
     { id: "sms", optional: true, name: "SMS / WhatsApp (Twilio)", live: live.sms, env: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER"], fallback: "Simulated send, logged in the audit trail" },
   ];
 }

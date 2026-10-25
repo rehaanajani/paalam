@@ -2812,3 +2812,206 @@ button.bot-pill:hover {
   font-size: 11px;
   color: var(--text-3);
 }
+
+/* Simple mode: voice first, large type, for elders */
+.simple {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 16px 16px 32px;
+  font-size: 20px;
+}
+.simple-top {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.simple-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 22px;
+}
+.simple-langs {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.simple-langs button,
+.simple-exit {
+  font-size: 17px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.simple-langs button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.simple-calls {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.simple-sos,
+.simple-family {
+  flex: 1 1 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 72px;
+  border-radius: 20px;
+  font-size: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+}
+.simple-sos {
+  background: var(--danger);
+  color: #fff;
+}
+.simple-family {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+.simple-talk {
+  width: min(78vw, 300px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 26px;
+  font-weight: 700;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--accent) 40%, transparent);
+  cursor: pointer;
+}
+.simple-talk span {
+  font-size: 20px;
+  line-height: 1.3;
+}
+.simple-talk.listening {
+  background: var(--danger);
+  animation: simple-pulse 1.4s ease-in-out infinite;
+}
+.simple-talk.thinking {
+  opacity: 0.75;
+}
+@keyframes simple-pulse {
+  50% {
+    transform: scale(1.04);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .simple-talk.listening {
+    animation: none;
+  }
+}
+.simple-hint,
+.simple-err {
+  max-width: 720px;
+  text-align: center;
+  font-size: 22px;
+  margin: 0;
+}
+.simple-err {
+  color: var(--danger);
+}
+.simple-answer {
+  width: 100%;
+  max-width: 720px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  font-size: 24px;
+  line-height: 1.5;
+}
+.simple-answer p {
+  margin: 0 0 14px;
+  white-space: pre-wrap;
+}
+.simple-answer button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+.simple-type {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  gap: 8px;
+}
+.simple-type input {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.simple-type button {
+  font-size: 20px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+.simple-type button:disabled {
+  opacity: 0.5;
+}
+.simple-type .simple-new {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.simple-family-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.simple-family-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.simple-family-fields input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}

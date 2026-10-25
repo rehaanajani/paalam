@@ -11,6 +11,8 @@ import { SettingsDialog, type SettingsTab } from "./views/Settings";
 import { applyTheme, loadTheme, type Theme } from "./theme";
 import { listenForNotices, type Notice } from "./notify";
 import { syncPhoneReminders } from "./mobile";
+import { loadSimple, saveSimple, type SimplePrefs } from "./elder";
+import { Simple } from "./views/Simple";
 import type { GemDef, Status, ToolInfo } from "./types";
 
 type Route = { view: "argon" } | { view: "bridge"; id: string } | { view: "gem"; id: string };
@@ -41,6 +43,11 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [offline, setOffline] = useState(false);
   const [toasts, setToasts] = useState<Notice[]>([]);
+  const [simple, setSimpleState] = useState<SimplePrefs>(loadSimple);
+  const setSimple = (p: SimplePrefs) => {
+    setSimpleState(p);
+    saveSimple(p);
+  };
   useEffect(
     () =>
       listenForNotices((n) => {
@@ -204,6 +211,8 @@ export function App() {
     page = <ArgonHome gems={gems} status={status} busy={busy} onSend={(t, f, n) => send(t, f, n)} onSample={sample} onOpenGem={(id) => go(`/gem/${id}`)} />;
   }
 
+  if (simple.on && !settings) return <Simple prefs={simple} onPrefs={setSimple} onExit={() => setSimple({ ...simple, on: false })} />;
+
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""}`}>
       <div className="drawer-backdrop" aria-hidden="true" onClick={() => setCollapsed(true)} />
@@ -341,7 +350,7 @@ export function App() {
           onSettings={() => setSettings("general")}
         />
       )}
-      {settings && <SettingsDialog tab={settings} gems={gems} tools={tools} status={status} theme={theme} onTheme={setTheme} onGemsChanged={loadGems} onClose={() => setSettings(null)} />}
+      {settings && <SettingsDialog tab={settings} gems={gems} tools={tools} status={status} theme={theme} onTheme={setTheme} simple={simple} onSimple={setSimple} onGemsChanged={loadGems} onClose={() => setSettings(null)} />}
     </div>
   );
 }

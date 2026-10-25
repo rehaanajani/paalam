@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Cable, Gauge, Gem as GemIcon, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, X } from "lucide-react";
+import { Cable, Gauge, Gem as GemIcon, Mic, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, X } from "lucide-react";
 import { api } from "../api";
 import { Plugins } from "./Plugins";
 import { GemStudio } from "./GemStudio";
 import { Harness } from "./Harness";
 import { Integrations } from "./Integrations";
 import { applyTheme, type Theme } from "../theme";
+import type { SimplePrefs } from "../elder";
 import type { GemDef, Status, ToolInfo } from "../types";
 
 export type SettingsTab = "general" | "gems" | "plugins" | "harness" | "integrations";
@@ -19,7 +20,7 @@ const tabs: { id: SettingsTab; label: string; icon: typeof Cable }[] = [
 ];
 
 /** Socius's floating Settings dialog: sections on the left, the pane on the right. */
-export function SettingsDialog({ tab: initial, gems, tools, status, theme, onTheme, onGemsChanged, onClose }: { tab: SettingsTab; gems: GemDef[]; tools: ToolInfo[]; status: Status | null; theme: Theme; onTheme: (t: Theme) => void; onGemsChanged: () => void; onClose: () => void }) {
+export function SettingsDialog({ tab: initial, gems, tools, status, theme, onTheme, simple, onSimple, onGemsChanged, onClose }: { tab: SettingsTab; gems: GemDef[]; tools: ToolInfo[]; status: Status | null; theme: Theme; onTheme: (t: Theme) => void; simple: SimplePrefs; onSimple: (p: SimplePrefs) => void; onGemsChanged: () => void; onClose: () => void }) {
   const [tab, setTab] = useState<SettingsTab>(initial);
   const [prefs, setPrefs] = useState<{ router: "gem" | "argon"; models: { gem: string; argon: string } } | null>(null);
   useEffect(() => void api("settings").then(setPrefs).catch(() => {}), []);
@@ -90,6 +91,33 @@ export function SettingsDialog({ tab: initial, gems, tools, status, theme, onThe
                       <t.icon size={14} /> {t.label}
                     </button>
                   ))}
+                </div>
+              </section>
+              <section className="settings-card">
+                <div className="settings-heading">
+                  <Mic size={18} />
+                  <div>
+                    <strong>Simple mode, for elders</strong>
+                    <p>One big button to talk, answers in large text read aloud in Tamil, English or Hindi, and a 112 button always on screen. Saved on this device only, so set it on the phone they use.</p>
+                  </div>
+                </div>
+                <div className="segmented" role="radiogroup" aria-label="Simple mode">
+                  <button role="radio" aria-checked={!simple.on} className={!simple.on ? "selected" : ""} onClick={() => onSimple({ ...simple, on: false })}>
+                    Full app
+                  </button>
+                  <button role="radio" aria-checked={simple.on} className={simple.on ? "selected" : ""} onClick={() => onSimple({ ...simple, on: true })}>
+                    Simple mode
+                  </button>
+                </div>
+                <div className="simple-family-fields">
+                  <label>
+                    Family member's name
+                    <input value={simple.familyName} placeholder="Amma, Ravi…" onChange={(e) => onSimple({ ...simple, familyName: e.target.value })} />
+                  </label>
+                  <label>
+                    Their number (a big call button)
+                    <input value={simple.family} inputMode="tel" placeholder="+91…" onChange={(e) => onSimple({ ...simple, family: e.target.value })} />
+                  </label>
                 </div>
               </section>
               {prefs && (

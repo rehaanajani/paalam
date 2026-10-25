@@ -135,3 +135,13 @@ On Cloud Run the service account is attached directly: no key file, no login. Gi
 | **Document AI** | Gemini reads prescriptions and PDFs itself. Document AI pays off at thousands of forms, not one family's papers |
 | **Vertex AI Vector Search / RAG Engine** | Our knowledge base and incident matching use Gemini Embeddings with a local index, which is plenty for one city. Vector Search is the path when it grows past ~100k passages |
 | **Earth Engine** (satellite flood maps) | Needs a separate approval and hours of setup |
+
+## Telegram bot (optional)
+
+1. In Telegram, message **@BotFather**, send `/newbot`, pick a name and a username ending in `bot`.
+2. Copy the token it gives you into `.env` as `TELEGRAM_BOT_TOKEN=…` (on Cloud Run, store it in Secret Manager like the other keys).
+3. Optional: `PUBLIC_URL=https://your-paalam-url` so each answer links to the full Bridge with approvals and the map.
+4. Restart Paalam. The log says `Telegram bot: listening`. Message your bot `/start`.
+
+Only one copy of Paalam can poll a bot at a time, so use a separate bot for your laptop and your Cloud Run deploy.
+

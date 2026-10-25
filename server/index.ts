@@ -6,8 +6,8 @@ import { config, integrationStatus, live } from "./config.js";
 import { draftGem, newRun, runBridge, saveGem } from "./argon.js";
 import { execute } from "./execute.js";
 import { gems } from "./gems/registry.js";
-import { publicTools } from "./tools/index.js";
-import { allNotes, budget, removeNote, resetNotes } from "./harness/index.js";
+import { publicTools, toolRegistry } from "./tools/index.js";
+import { allNotes, budget, newUsage, removeNote, resetNotes } from "./harness/index.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
@@ -24,6 +24,7 @@ import { chatModels } from "./models.js";
 import { addPushSubscription, pushKey, reminderStore, startReminderClock } from "./reminders.js";
 import { gems as gemRegistry } from "./gems/registry.js";
 import { ensureVectors, loadKnowledge } from "./knowledge.js";
+import { startTelegram } from "./telegram.js";
 import type { Evidence, Run, RunEvent } from "./types.js";
 
 const app = express();
@@ -130,6 +131,27 @@ app.post("/api/push/subscribe", (req, res) => {
 
 app.get("/api/models", async (_req, res) => res.json(await chatModels()));
 
+// Read a reply aloud: translate it to the person's language, then Cloud Text-to-Speech.
+// Without a Cloud key it returns the text only and the browser's own voice reads it.
+app.post("/api/speak", async (req, res) => {
+  const text = String(req.body?.text ?? "").slice(0, 1500);
+  const lang = /^[a-z]{2}-[A-Z]{2}$/.test(String(req.body?.lang)) ? String(req.body.lang) : "ta-IN";
+  if (!text) return res.status(400).json({ error: "Nothing to read." });
+  res.json(await speakText(text, lang));
+});
+
+async function speakText(text: string, lang: string) {
+  const usage = newUsage();
+  const ctx = { evidence: [], near: { lat: config.city.lat, lng: config.city.lng }, usage };
+  let said = text;
+  if (!lang.startsWith("en")) {
+    const t = await toolRegistry.get("translate")!.run({ text, target: lang.slice(0, 2) }, ctx).catch(() => null);
+    if (t?.ok && !t.demo && t.data?.text) said = t.data.text;
+  }
+  const s = await toolRegistry.get("speak")!.run({ text: said, lang }, ctx).catch(() => null);
+  return { text: said, lang, audio: (s?.ok ? (s.data?.audio ?? null) : null) as string | null };
+}
+
 app.get("/api/settings", (_req, res) => res.json({ ...settings.get(), models: { gem: config.gemini.gemModel, argon: config.gemini.argonModel } }));
 app.put("/api/settings", (req, res) => {
   try {
@@ -197,7 +219,8 @@ app.post("/api/runs", upload.array("files"), (req, res) => {
   const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
   const near = Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng) ? { lat, lng } : undefined;
   const tz = String(req.body?.tz ?? "") || undefined;
-  const run = newRun(near ? `${text}\n(Device location: ${lat.toFixed(5)}, ${lng.toFixed(5)})` : text, evidence, false, { near, threadId, target, tz, history: threadHistory(threadId) });
+  const simple = req.body?.simple === "1" || req.body?.simple === true;
+  const run = newRun(near ? `${text}\n(Device location: ${lat.toFixed(5)}, ${lng.toFixed(5)})` : text, evidence, false, { near, threadId, target, tz, simple, history: threadHistory(threadId) });
   res.json({ id: start(run), threadId: run.threadId });
 });
 
@@ -316,6 +339,19 @@ setIncidents(await store.loadIncidents());
 void checkModels();
 keepWarm();
 startReminderClock();
+
+// Telegram: each message becomes a run in that chat's Bridge; the bot replies when it's done.
+const telegramOn = startTelegram(
+  (text, evidence, { threadId, simple, near }) =>
+    new Promise<Run>((done) => {
+      const run = newRun(near ? `${text}\n(Device location: ${near.lat.toFixed(5)}, ${near.lng.toFixed(5)})` : text, evidence, !live.gemini, { threadId, simple, ...(near ? { near } : {}), history: threadHistory(threadId) });
+      const set = new Set([(e: RunEvent) => (e.type === "done" || e.type === "error") && setTimeout(() => done(run), 50)]);
+      listeners.set(run.id, set);
+      start(run);
+    }),
+  async (text) => (await speakText(text, "ta-IN")).audio,
+);
+if (telegramOn) console.log("Telegram bot: listening");
 // Started by the desktop app: exit if the app is gone, so no orphaned server keeps running.
 if (process.env.PAALAM_PARENT_PID) {
   const parent = Number(process.env.PAALAM_PARENT_PID);

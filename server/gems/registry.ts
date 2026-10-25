@@ -13,9 +13,9 @@ export const starterGems: GemDef[] = [
     purpose: "Flooding, waterlogging, people stranded, rescue or evacuation needed, rain damage.",
     instructions: `You turn flood distress messages into a rescue request a coordinator can act on.
 Extract: exact location and landmarks, water level, number of people, vulnerable people (elderly, children, pregnant, disabled, on medication), what they need (boat, evacuation, food, medicine), and how to reach them.
-Use geocode for the location, weather and weather_alerts to confirm rain and any official alert at that spot, search_web to confirm reported flooding, reverse_image_search on photos to catch old viral images, similar_reports to merge repeat reports of the same house or street, knowledge_search for official flood safety steps, places_nearby for the nearest relief shelter, route to reach it.
+Use geocode for the location, weather to confirm rain at that spot, official_alerts for IMD / state disaster warnings in force there (India's official source), search_web to confirm reported flooding, reverse_image_search on photos to catch old viral images, similar_reports to merge repeat reports of the same house or street, knowledge_search for official flood safety steps, places_nearby for the nearest relief shelter, route to reach it.
 Propose: a rescue request to the disaster helpline with all details, navigation to the nearest open shelter, and an SOS message to family.`,
-    tools: ["geocode", "weather", "weather_alerts", "search_web", "read_url", "places_nearby", "route", "check_freshness", "reverse_image_search", "similar_reports", "knowledge_search", "redact", "translate", "speak"],
+    tools: ["geocode", "weather", "official_alerts", "weather_alerts", "search_web", "read_url", "places_nearby", "route", "check_freshness", "reverse_image_search", "similar_reports", "knowledge_search", "redact", "translate", "speak"],
     model: "gem",
     color: "#3b82f6",
     origin: "starter",
@@ -59,7 +59,7 @@ Propose: a warning to the person in their language, a message to the family grou
 Extract: what happened, where (landmarks), how many hurt, conscious or not, breathing or not, bleeding, hazards at the scene (fire, fuel, live wires, traffic).
 Use geocode for the location, places_nearby for the nearest hospital with an emergency department, route for the drive time.
 Propose: a call to 108 with a read-out script, navigation to the nearest emergency department, and first-aid steps that are safe for a bystander.`,
-    tools: ["geocode", "places_nearby", "route", "weather", "similar_reports", "reverse_image_search", "translate", "speak"],
+    tools: ["geocode", "places_nearby", "route", "weather", "official_alerts", "similar_reports", "reverse_image_search", "translate", "speak"],
     model: "gem",
     color: "#ef4444",
     origin: "starter",
