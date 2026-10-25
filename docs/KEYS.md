@@ -52,34 +52,30 @@ Gemini 4 Argon is served through **Vertex AI** on your Cloud project, which bill
 2. **Restrict key** → tick: Cloud Vision API, Cloud Translation API, Cloud Text-to-Speech API, Safe Browsing API → **Save**.
 3. Copy it into `.env` as `GOOGLE_CLOUD_API_KEY=`.
 
-## 5. Service account (`paalam`)
+## 5. Google login for Argon and the Cloud APIs (no key file)
 
-Some APIs (DLP, Healthcare, Model Armor, Firestore) don't accept API keys; they need a service account.
+Vertex AI (Argon and the Gems), DLP, Healthcare NL, Model Armor and Firestore don't take API keys. Many organizations block service-account key files ("Secure by Default"), and Google recommends against them anyway. Paalam uses **Application Default Credentials** instead:
 
-1. **IAM & Admin → Service Accounts → Create service account** → name `paalam` → **Create and continue**.
-2. Grant these roles, then **Done**:
-   - **DLP User**
-   - **Healthcare Natural Language Service Viewer**
-   - **Model Armor User**
-   - **Cloud Datastore User** (for Firestore)
-   - **Vertex AI User** (required: this is how Argon and the Gems run)
-3. Open the `paalam` account → **Keys → Add key → Create new key → JSON**. A file downloads.
-4. Move it **outside** the Paalam folder, for example `~/keys/paalam-sa.json`.
-5. In `.env`:
-   ```
-   GOOGLE_CLOUD_PROJECT=your-project-id
-   GOOGLE_APPLICATION_CREDENTIALS=/Users/you/keys/paalam-sa.json
-   ```
-   The project ID is shown in the project picker at the top of the console (it's not the display name).
-
-Same roles from Cloud Shell, if you prefer (replace `PROJECT_ID`):
+**On your Mac**, once:
 
 ```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project PROJECT_ID
+```
+
+The first command opens a browser: sign in with the Google account that owns the project. Leave `GOOGLE_APPLICATION_CREDENTIALS=` empty in `.env`. You'll need the gcloud CLI: https://cloud.google.com/sdk/docs/install
+
+**On Cloud Run**, the `paalam` service account is attached to the service, so there's no file and no login. Create it with these roles (Cloud Shell, replace `PROJECT_ID`):
+
+```bash
+gcloud iam service-accounts create paalam --display-name=paalam
 for role in aiplatform.user dlp.user healthcare.nlpServiceViewer modelarmor.user datastore.user; do
   gcloud projects add-iam-policy-binding PROJECT_ID \
     --member="serviceAccount:paalam@PROJECT_ID.iam.gserviceaccount.com" --role="roles/$role"
 done
 ```
+
+Only if your organization allows key files can you instead download a JSON key for `paalam` and set `GOOGLE_APPLICATION_CREDENTIALS` to its path.
 
 ## 6. Model Armor template (the injection shield)
 
@@ -125,7 +121,7 @@ gcloud run deploy paalam --source . --region asia-south1 --allow-unauthenticated
   --set-secrets GOOGLE_MAPS_API_KEY=maps-key:latest,GOOGLE_CLOUD_API_KEY=cloud-key:latest
 ```
 
-On Cloud Run the service account is attached directly, so you don't upload the JSON file there. Give it **Secret Manager Secret Accessor** too.
+On Cloud Run the service account is attached directly: no key file, no login. Give it **Secret Manager Secret Accessor** too.
 
 ---
 
