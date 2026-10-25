@@ -4,7 +4,7 @@
 
 Paalam is a Gemini-powered bridge between people in a crisis and the systems that can help them. Drop in a panicked Tamil voice note, a photo of a flooded street, a crumpled prescription and a forwarded "₹5000 relief" message, all at once. **Argon** splits the chaos into separate problems, routes each to a specialist **Gem**, the Gems check every claim with Google's tools, a deterministic **trust layer** decides what may be called verified, and **you approve** every action.
 
-Built for PromptWars x ACM SRM (Societal Benefit). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Built for PromptWars x ACM SRM (Societal Benefit). **Everything it can do: [docs/FEATURES.md](docs/FEATURES.md)** · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Install (one command)
 

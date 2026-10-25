@@ -316,6 +316,17 @@ setIncidents(await store.loadIncidents());
 void checkModels();
 keepWarm();
 startReminderClock();
+// Started by the desktop app: exit if the app is gone, so no orphaned server keeps running.
+if (process.env.PAALAM_PARENT_PID) {
+  const parent = Number(process.env.PAALAM_PARENT_PID);
+  setInterval(() => {
+    try {
+      process.kill(parent, 0);
+    } catch {
+      process.exit(0);
+    }
+  }, 5000).unref();
+}
 app.listen(config.port, () => {
   const on = integrationStatus().filter((i) => i.live).map((i) => i.id);
   console.log(`Paalam on http://localhost:${config.port}  ·  ${live.gemini ? "live" : "DEMO mode"}  ·  live: ${on.join(", ") || "none"}  ·  ${runs.size} saved run(s) (${store.engine()})`);

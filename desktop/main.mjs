@@ -50,7 +50,7 @@ async function startServer() {
   const where = app.isPackaged ? { PAALAM_ENV_FILE: join(userData, ".env"), PAALAM_DATA_DIR: join(userData, "data") } : {};
   server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], {
     cwd: root,
-    env: { ...process.env, ...where, ELECTRON_RUN_AS_NODE: "1", NODE_ENV: "production", PORT: String(port) },
+    env: { ...process.env, ...where, ELECTRON_RUN_AS_NODE: "1", NODE_ENV: "production", PORT: String(port), PAALAM_PARENT_PID: String(process.pid) },
     stdio: ["ignore", "pipe", "pipe"],
   });
   for (const stream of [server.stdout, server.stderr]) stream.on("data", (d) => appendFileSync(log, d));
@@ -167,7 +167,12 @@ app
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
-app.on("before-quit", () => {
+// The background server must never outlive the app, however the app ends.
+const stopServer = () => {
   quitting = true;
-  server?.kill();
-});
+  if (server && server.exitCode === null) server.kill();
+};
+app.on("before-quit", stopServer);
+app.on("will-quit", stopServer);
+process.on("exit", stopServer);
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => (stopServer(), app.quit()));

@@ -7,6 +7,7 @@ import { ActionCard } from "./ActionCard";
 import { MapView } from "./MapView";
 import { RichText } from "./RichText";
 import { Reminders } from "./Reminders";
+import { syncPhoneReminders } from "../mobile";
 import type { ActionCard as Card, AuditEntry, Fragment, GemDef, GemResult, Run, RunEvent, Stage } from "../types";
 
 interface Live {
@@ -102,7 +103,7 @@ export function RunBlock({ runId, gems, center, onSettled }: { runId: string; ge
         if (e.type === "done" || e.type === "error") {
           es?.close();
           onSettled?.();
-          void import("../mobile").then((m) => m.syncPhoneReminders()).catch(() => {});
+          void syncPhoneReminders().catch(() => {});
         }
       };
     });
