@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Cable, Gauge, Gem as GemIcon, Mic, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, X } from "lucide-react";
+import { Cable, Gauge, Gem as GemIcon, Mic, Monitor, Moon, NotebookPen, Puzzle, SlidersHorizontal, Sun, Target, X } from "lucide-react";
+import { Mission } from "./Mission";
 import { api } from "../api";
 import { Plugins } from "./Plugins";
 import { GemStudio } from "./GemStudio";
@@ -9,10 +10,11 @@ import { applyTheme, type Theme } from "../theme";
 import type { SimplePrefs } from "../elder";
 import type { GemDef, Status, ToolInfo } from "../types";
 
-export type SettingsTab = "general" | "gems" | "plugins" | "harness" | "integrations";
+export type SettingsTab = "general" | "mission" | "gems" | "plugins" | "harness" | "integrations";
 
 const tabs: { id: SettingsTab; label: string; icon: typeof Cable }[] = [
   { id: "general", label: "General", icon: SlidersHorizontal },
+  { id: "mission", label: "Mission", icon: Target },
   { id: "gems", label: "Gems", icon: GemIcon },
   { id: "plugins", label: "Plugins", icon: Puzzle },
   { id: "harness", label: "Harness", icon: NotebookPen },
@@ -172,6 +174,7 @@ export function SettingsDialog({ tab: initial, gems, tools, status, theme, onThe
               )}
             </div>
           )}
+          {tab === "mission" && <Mission onChanged={onGemsChanged} />}
           {tab === "gems" && <GemStudio gems={gems} tools={tools} onChanged={onGemsChanged} />}
           {tab === "plugins" && <Plugins onReloaded={onGemsChanged} />}
           {tab === "harness" && <Harness gems={gems} />}

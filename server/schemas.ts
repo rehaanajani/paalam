@@ -134,3 +134,12 @@ export const actSchema = {
 };
 
 export const gemDraftSchema = splitSchema.properties.newGem;
+
+/** A starting set of Gems for a new mission: one line per specialist. */
+export const missionGemsSchema = {
+  type: "object",
+  properties: {
+    gems: { type: "array", items: str("one specialist Gem: what messy input it takes and what verified actions it produces, ≤ 40 words"), maxItems: 4 },
+  },
+  required: ["gems"],
+};

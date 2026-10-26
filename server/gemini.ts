@@ -51,13 +51,29 @@ export async function askJSON<T>(opts: {
   model?: string;
 }): Promise<T> {
   const fallback = modelFor(opts.tier);
-  if (!opts.model || opts.model === fallback) return askJSONWith<T>(fallback, opts);
+  if (!opts.model || opts.model === fallback) return withOverflow<T>(fallback, opts);
   try {
     return await askJSONWith<T>(opts.model, opts);
   } catch (e) {
     // A picked model that can't do structured output (or is unavailable) shouldn't break the Gem.
     console.warn(`${opts.step}: ${opts.model} failed (${(e as Error).message.slice(0, 120)}), using ${fallback}`);
-    return askJSONWith<T>(fallback, opts);
+    return withOverflow<T>(fallback, opts);
+  }
+}
+
+/** Google's shared capacity runs out at busy times (429) or a model is briefly down (503). */
+export const isOverloaded = (e: unknown) => /\b(429|503)\b|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded/i.test((e as Error)?.message ?? "");
+
+/** When the tier's model is overloaded, the other tier's model answers instead of the run failing. */
+async function withOverflow<T>(model: string, opts: Parameters<typeof askJSONWith>[1]): Promise<T> {
+  try {
+    return await askJSONWith<T>(model, opts);
+  } catch (e) {
+    const other = modelFor(opts.tier === "argon" ? "gem" : "argon");
+    if (!isOverloaded(e) || other === model) throw e;
+    console.warn(`${opts.step}: ${model} is overloaded, using ${other}`);
+    await new Promise((r) => setTimeout(r, 500));
+    return askJSONWith<T>(other, opts);
   }
 }
 

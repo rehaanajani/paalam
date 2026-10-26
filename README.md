@@ -4,7 +4,7 @@
 
 Paalam is a Gemini-powered bridge between people in a crisis and the systems that can help them. Drop in a panicked Tamil voice note, a photo of a flooded street, a crumpled prescription and a forwarded "₹5000 relief" message, all at once. **Argon** splits the chaos into separate problems, routes each to a specialist **Gem**, the Gems check every claim with Google's tools, a deterministic **trust layer** decides what may be called verified, and **you approve** every action.
 
-Built for PromptWars x ACM SRM (Societal Benefit). **Everything it can do: [docs/FEATURES.md](docs/FEATURES.md)** · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Built for PromptWars x ACM SRM (Societal Benefit). **Everything it can do: [docs/FEATURES.md](docs/FEATURES.md)** · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · New problem statement: [docs/PIVOT.md](docs/PIVOT.md).
 
 ## Install (one command)
 
@@ -86,6 +86,18 @@ Gems can **read a link** (any public page, as text), **open a page** in a real b
 | Firestore | Saves Bridges on Cloud Run |
 
 How to get every key: [docs/KEYS.md](docs/KEYS.md). Each one is optional; without it that piece runs on labelled demo data.
+
+## Point it at a different problem
+
+The problem statement lives in one place: **Settings → Mission** (default in `mission.json`). Paste a new statement, let Argon draft Gems for it, switch off the ones that don't fit. No code changes. See [docs/PIVOT.md](docs/PIVOT.md).
+
+## Tests
+
+```bash
+npm test
+```
+
+Offline, no keys needed: the trust layer (fake citations, invented phone numbers, unverified places), masking of Aadhaar, PAN, cards and phones, the injection shield, the browser's private-network block, harness notes that try to weaken safety, reminder time zones, mission edits and SACHET alert matching. `npm run check` runs the type check, tests and build together, as CI does on every push.
 
 ## Plugins
 

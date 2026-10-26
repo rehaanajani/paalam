@@ -1,5 +1,5 @@
 // App-shell cache so Paalam opens on a bad connection. API calls always go to the network.
-const CACHE = "paalam-v2";
+const CACHE = "paalam-v3";
 self.addEventListener("install", (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/icon.svg", "/manifest.webmanifest"])).then(() => self.skipWaiting())));
 self.addEventListener("activate", (e) => e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", (e) => {
@@ -12,7 +12,8 @@ self.addEventListener("fetch", (e) => {
         caches.open(CACHE).then((c) => c.put(e.request, copy));
         return res;
       })
-      .catch(() => caches.match(e.request).then((r) => r || caches.match("/"))),
+      // Offline: the cached copy, and the cached app shell only for page loads (never HTML for a script).
+      .catch(() => caches.match(e.request).then((r) => r || (e.request.mode === "navigate" ? caches.match("/") : Response.error()))),
   );
 });
 

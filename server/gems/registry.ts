@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mission } from "../mission.js";
 import { dirname, join } from "node:path";
 import type { GemDef } from "../types.js";
 import { DATA_DIR } from "../paths.js";
@@ -83,7 +84,10 @@ let plugins: GemDef[] = [];
 const fixed = () => [...starterGems, ...plugins.filter((p) => !starterGems.some((s) => s.id === p.id))];
 
 export const gems = {
-  all: (): GemDef[] => [...fixed(), ...custom.filter((c) => !fixed().some((f) => f.id === c.id))],
+  /** Every Gem in play: starter and plugin Gems the mission hasn't switched off, then your own. */
+  all: (): GemDef[] => [...fixed().filter((g) => !mission.get().hiddenGems.includes(g.id)), ...custom.filter((c) => !fixed().some((f) => f.id === c.id))],
+  /** Starter and plugin Gems, including switched-off ones, for the Mission settings. */
+  builtIn: (): GemDef[] => fixed(),
   get: (id: string) => gems.all().find((g) => g.id === id),
   /** Plugin Gems come from plugins/gems/*.json and are replaced on every reload. */
   setPlugins(list: GemDef[]) {

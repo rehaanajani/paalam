@@ -3,7 +3,7 @@ import { askJSON } from "./gemini.js";
 import { config, live } from "./config.js";
 import { gems } from "./gems/registry.js";
 import { toolRegistry, describeTools, readPhotoMeta, type ToolContext } from "./tools/index.js";
-import { actSchema, gemDraftSchema, planSchema, splitSchema } from "./schemas.js";
+import { actSchema, gemDraftSchema, planSchema, splitSchema, missionGemsSchema } from "./schemas.js";
 import { enforceTrust } from "./trust.js";
 import { addNote, argonSystem, budget, gemSystem, newUsage, overBudget } from "./harness/index.js";
 import { scenario } from "./demo/scenario.js";
@@ -380,6 +380,24 @@ export async function draftGem(description: string): Promise<NewGem & { demo: bo
     prompt: `Design a new specialist Gem for: """${description}"""\nTools you can give it:\n${describeTools([...toolRegistry.keys()])}`,
   });
   return { ...out, demo: false };
+}
+
+/** Drafts a starting set of Gems for the current mission, for you to review and save. */
+export async function draftMissionGems(statement: string) {
+  if (!live.gemini) throw new Error("Drafting Gems for a mission needs Gemini. Add your keys first.");
+  const usage = newUsage();
+  const { gems: ideas } = await askJSON<{ gems: string[] }>({
+    tier: "argon",
+    step: "argon:mission-gems",
+    usage,
+    system: argonSystem(),
+    schema: missionGemsSchema,
+    prompt: `Problem statement:\n"""${statement}"""\n\nExisting Gems:\n${gems
+      .all()
+      .map((g) => `- ${g.name}: ${g.purpose}`)
+      .join("\n")}\n\nPropose up to 4 specialist Gems that together cover this problem statement best. Reuse nothing that an existing Gem already does well.`,
+  });
+  return Promise.all(ideas.slice(0, 4).map((d) => draftGem(d)));
 }
 
 export function saveGem(g: NewGem & { color?: string; model?: ModelTier }, origin: GemDef["origin"] = "user") {

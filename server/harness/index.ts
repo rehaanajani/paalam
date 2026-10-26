@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { GemDef } from "../types.js";
 import { DATA_DIR } from "../paths.js";
+import { missionBrief } from "../mission.js";
 
 /**
  * The harness: the playbooks every model call starts from, the token budget it
@@ -84,11 +85,11 @@ const renderNotes = (agent: string) => {
 
 // ── System prompts ─────────────────────────────────────────────
 export function argonSystem() {
-  return playbook("argon") + renderNotes("argon");
+  return missionBrief() + playbook("argon") + renderNotes("argon");
 }
 
 export function gemSystem(gem: GemDef) {
-  return `${playbook("gem")}${renderNotes("gems")}\n\n---\n# You are the "${gem.name}" Gem\n${gem.instructions}${renderNotes(`gem:${gem.id}`)}`;
+  return `${missionBrief()}${playbook("gem")}${renderNotes("gems")}\n\n---\n# You are the "${gem.name}" Gem\n${gem.instructions}${renderNotes(`gem:${gem.id}`)}`;
 }
 
 // ── Token budget ───────────────────────────────────────────────

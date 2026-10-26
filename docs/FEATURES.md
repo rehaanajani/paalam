@@ -81,6 +81,9 @@ Each Gem picks the simplest shape that helps:
 |---|---|
 | **Plugins** | Drop a tool (`plugins/tools/*.ts`) or a Gem (`plugins/gems/*.json`) in; reload from Settings → Plugins. Guide: [PLUGINS.md](PLUGINS.md) |
 | **Knowledge** | Drop Markdown or text into `knowledge/`; Gems cite it |
+| **Mission** | Settings → Mission: the problem statement every prompt starts from, the home-screen wording, which built-in Gems are on, and "Draft Gems for this statement". Pivoting needs no code ([PIVOT.md](PIVOT.md)) |
+| **Overload fallback** | When Google's shared capacity runs out for one model, the run switches to the other model instead of failing |
+| **Tests and CI** | `npm test`: 17 offline tests of the trust layer, masking, injection shield, URL safety, harness guard, reminders and alerts; GitHub Actions runs type check + tests + build on every push |
 | **Harness** | Settings → Harness: the playbooks every model follows (editable while running), the token budget, and short rules the models wrote for themselves (they can't weaken safety rules) |
 
 ## 9. Runs everywhere

@@ -3015,3 +3015,81 @@ button.bot-pill:hover {
   background: var(--bg);
   color: var(--text);
 }
+
+/* Settings → Mission */
+.pane-lead {
+  color: var(--text-2);
+  margin: 0 0 16px;
+  max-width: 62ch;
+}
+.mission textarea,
+.mission input:not([type="checkbox"]) {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.mission-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.mission-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mission-actions.sticky {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0;
+  background: var(--elevated);
+  border-top: 1px solid var(--border);
+}
+.mission-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.mission-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.mission-fields .wide {
+  grid-column: 1 / -1;
+}
+.mission .check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  display: flex;
+  font-size: 14px;
+}
+.mission-gems,
+.mission-drafts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.mission-draft {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.mission-draft small {
+  display: block;
+  opacity: 0.7;
+  margin-top: 2px;
+}

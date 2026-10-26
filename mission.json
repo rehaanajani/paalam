@@ -1,0 +1,13 @@
+{
+  "statement": "Build a Gemini-powered App that solves for societal benefit by acting as a universal bridge between human intent and complex systems. Participants must create a functional interface that takes unstructured, messy, real-world inputs that can be anything (voice, traffic, weather, news, photos or a messy stack of medical history) and instantly converts them into structured, verified, and life-saving actions.",
+  "headline": "Send anything.",
+  "headlineAccent": "Get verified action.",
+  "welcome": "I'm Argon, the orchestrator. Send me the whole messy situation: voice notes, photos, forwards, prescriptions, any language. I'll split it into problems, hand each to the right Gem, check every claim, and ask you before anything happens.",
+  "suggestions": [
+    "Our street in Velachery is flooding and my grandfather can't walk. We're on the first floor.",
+    "Someone sent this 'PM relief ₹6000' link asking for my bank details and OTP. Is it real?",
+    "My mother has these three prescriptions and I don't understand the timings."
+  ],
+  "showDemo": true,
+  "hiddenGems": []
+}

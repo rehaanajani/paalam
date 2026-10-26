@@ -18,6 +18,7 @@ COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY plugins ./plugins
 COPY knowledge ./knowledge
+COPY mission.json ./
 COPY tsconfig.json ./
 EXPOSE 8080
 CMD ["npx", "tsx", "server/index.ts"]

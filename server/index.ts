@@ -3,7 +3,8 @@ import multer from "multer";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { config, integrationStatus, live } from "./config.js";
-import { draftGem, newRun, runBridge, saveGem } from "./argon.js";
+import { draftGem, draftMissionGems, newRun, runBridge, saveGem } from "./argon.js";
+import { mission } from "./mission.js";
 import { execute } from "./execute.js";
 import { gems } from "./gems/registry.js";
 import { publicTools, toolRegistry } from "./tools/index.js";
@@ -162,6 +163,18 @@ app.put("/api/settings", (req, res) => {
 });
 
 app.get("/api/gems", (_req, res) => res.json(gems.all()));
+
+// The mission: the problem statement and wording Paalam is pointed at (Settings → Mission).
+app.get("/api/mission", (_req, res) => res.json({ ...mission.get(), builtInGems: gems.builtIn().map((g) => ({ id: g.id, name: g.name, purpose: g.purpose })) }));
+app.put("/api/mission", (req, res) => res.json(mission.update(req.body ?? {})));
+app.post("/api/mission/reset", (_req, res) => res.json(mission.reset()));
+app.post("/api/mission/gems", async (req, res) => {
+  try {
+    res.json(await draftMissionGems(String(req.body?.statement ?? mission.get().statement)));
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
 app.post("/api/gems/draft", async (req, res) => {
   try {
     res.json(await draftGem(String(req.body?.description ?? "")));

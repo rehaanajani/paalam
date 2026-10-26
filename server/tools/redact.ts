@@ -3,10 +3,11 @@ import { bearer } from "../google.js";
 import { postJSON } from "./http.js";
 
 const local: [string, RegExp, (m: string) => string][] = [
+  // Cards first: their first 12 digits would otherwise look like an Aadhaar number.
+  ["card", /\b(?:\d[ -]?){13,16}\b/g, () => "XXXX XXXX XXXX XXXX"],
   ["Aadhaar", /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, (m) => `XXXX XXXX ${m.replace(/\D/g, "").slice(-4)}`],
   ["PAN", /\b[A-Z]{5}\d{4}[A-Z]\b/g, () => "XXXXX0000X"],
   ["phone", /(?:\+91[\s-]?)?\b[6-9]\d{4}[\s-]?\d{5}\b/g, (m) => `+91 XXXXX ${m.replace(/\D/g, "").slice(-5, -3)}XXX`],
-  ["card", /\b(?:\d[ -]?){13,16}\b/g, () => "XXXX XXXX XXXX XXXX"],
   ["OTP", /\b(?:otp|OTP)[:\s]*\d{4,8}\b/g, () => "OTP ••••"],
 ];
 

@@ -1,8 +1,14 @@
+import { existsSync } from "node:fs";
 import dotenv from "dotenv";
 import { join } from "node:path";
 
 // Keys come from .env in the project, or from the file the desktop app points at.
 dotenv.config({ path: process.env.PAALAM_ENV_FILE || join(process.cwd(), ".env"), quiet: true });
+// A key file path that doesn't exist would break every Google call. Ignore it and use the gcloud login instead.
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS && !existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+  console.warn(`GOOGLE_APPLICATION_CREDENTIALS points to ${process.env.GOOGLE_APPLICATION_CREDENTIALS}, which doesn't exist; using your gcloud login instead.`);
+  delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+}
 
 const env = (k: string) => (process.env[k] ?? "").trim();
 
