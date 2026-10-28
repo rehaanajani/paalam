@@ -89,12 +89,19 @@ const validTz = (tz?: string) => {
   }
 };
 
+/** "6:00" → "06:00"; anything that isn't a real 24-hour time → undefined. */
+export function validDaily(hhmm?: string): string | undefined {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm?.trim() ?? "");
+  if (!m || +m[1]! > 23 || +m[2]! > 59) return undefined;
+  return `${m[1]!.padStart(2, "0")}:${m[2]}`;
+}
+
 // ── Store ──
 export const reminderStore = {
   list: (threadId?: string) => reminders.filter((r) => !threadId || r.threadId === threadId),
   add(draft: FollowUpDraft & { inMinutes?: number }, ctx: { threadId: string; runId: string; gemId: string; tz?: string }): Reminder | null {
     const tz = validTz(ctx.tz);
-    const daily = /^\d{1,2}:\d{2}$/.test(draft.daily ?? "") ? draft.daily!.padStart(5, "0") : undefined;
+    const daily = validDaily(draft.daily);
     const mins = Number(draft.inMinutes ?? 0);
     const at = draft.at ? new Date(draft.at) : mins > 0 ? new Date(Date.now() + mins * 60000) : null;
     if (!daily && (!at || isNaN(at.getTime()))) return null;
