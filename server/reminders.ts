@@ -105,12 +105,15 @@ export const reminderStore = {
     const mins = Number(draft.inMinutes ?? 0);
     const at = draft.at ? new Date(draft.at) : mins > 0 ? new Date(Date.now() + mins * 60000) : null;
     if (!daily && (!at || isNaN(at.getTime()))) return null;
+    const message = typeof draft.message === "string" ? draft.message.trim() : "";
+    if (!message) return null; // nothing to remind them of
+    const title = (typeof draft.title === "string" && draft.title.trim()) || "Reminder";
     const r: Reminder = {
       id: randomUUID().slice(0, 10),
       ...ctx,
       tz,
-      title: String(draft.title).slice(0, 80),
-      message: String(draft.message).slice(0, 240),
+      title: title.slice(0, 80),
+      message: message.slice(0, 240),
       ...(daily ? { daily } : { at: at!.toISOString() }),
       nextAt: (daily ? nextDaily(daily, tz) : at!).toISOString(),
       active: true,
