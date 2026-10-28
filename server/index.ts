@@ -103,7 +103,8 @@ app.get("/api/tools", (_req, res) => res.json(publicTools()));
 // ── Reminders and notifications ──
 app.get("/api/reminders", (req, res) => res.json(reminderStore.list(req.query.threadId ? String(req.query.threadId) : undefined)));
 app.patch("/api/reminders/:id", (req, res) => {
-  const r = reminderStore.update(req.params.id, { active: !!req.body?.active });
+  if (typeof req.body?.active !== "boolean") return void res.status(400).json({ error: "Send { active: true | false }" });
+  const r = reminderStore.update(req.params.id, { active: req.body.active });
   r ? res.json(r) : res.status(404).json({ error: "No such reminder" });
 });
 app.delete("/api/reminders/:id", (req, res) => {

@@ -129,6 +129,8 @@ export const reminderStore = {
     if (patch.active !== undefined) {
       r.active = patch.active;
       if (r.active && r.daily) r.nextAt = nextDaily(r.daily, r.tz).toISOString();
+      // A one-off whose time has passed can't be re-armed; it would fire on the next tick
+      if (r.active && !r.daily && Date.parse(r.nextAt) <= Date.now()) r.active = false;
     }
     write(FILE, reminders);
     return r;
