@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Paalam: a Gemini-powered bridge that turns messy real-world input into structured, verified, life-saving actions.",
+  "license": "MIT",
   "engines": {
     "node": ">=20"
   },
