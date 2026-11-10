@@ -5,6 +5,10 @@
   "type": "module",
   "description": "Paalam: a Gemini-powered bridge that turns messy real-world input into structured, verified, life-saving actions.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rehaanajani/paalam.git"
+  },
   "engines": {
     "node": ">=20"
   },
